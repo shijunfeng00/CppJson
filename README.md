@@ -10,6 +10,7 @@ C++没有反射与序列化，大部分自己实现的序列化用起来都很�
 
 但是很多代码用起来都异常繁琐，比如类似这样的
 
+
 [Ubp.a：99 行实现 C++ 简单反射](https://zhuanlan.zhihu.com/p/112914534)
 
 ["全球最强" | C++ 动态反射库](https://zhuanlan.zhihu.com/p/337200770)
@@ -56,10 +57,15 @@ DEF_FIELD_END
 我将会在后文中给出充分的示例。
 # 安装
 采用Header Only设计，使用起来非常方便，只需要包含相关头文件即可
+
 ```#include"lang/serializble.h"```。
+
 代码采用C++17/GCC10.3.0，没有什么其他额外的依赖。
+
 # 使用
+
 ## 相关限制
+
 目前我的代码支持属性满足以下类型条件的class的序列化与反序列化
 (反射只支持属性值,不过如法炮制可以支持成员函数，只是我的目标是序列化和反序列化，因此成员函数暂时没考虑)
 * C++基本类型(int,float,char,...)
@@ -83,7 +89,8 @@ struct NodeA
 * 继承```Serializable```类
 * 实现```Config::get_config```方法
 * 在main函数中使用```Serializable::Regist<NodeA>()```完成注册
-## 使用
+## 反射、序列化与反序列化
+
 完成简单注册后，然后就可以使用如下方法
 ```cpp
 NodeA node=*(NodeA*)Reflectable::get_instance("NodeA") //创建对象
@@ -92,6 +99,7 @@ std::string json=Serializable::dumps(node);            //序列化
 NodeA node2=Serializable::loads<NodeA>(node);          //反序列化
 ```
 ## 代码示例
+
 ### 示例代码1：
 ```cpp
 #include"lang/serializable.h"
@@ -159,7 +167,9 @@ json
 }
 */
 ```
+
 ### 示例代码2：二叉树的序列化
+
 ```cpp
 #include<iostream>
 #include<functional>
@@ -229,7 +239,9 @@ with open("test.json") as f:
     res=json.loads(f.readline())
 res
 ```
+
 输出结果
+
 ```
 {'rson': {'rson': None, 'lson': None, 'value': 6, 'class_name': 'Node'},
  'lson': {'rson': {'rson': {'rson': None,
@@ -245,11 +257,12 @@ res
  'value': 49,
  'class_name': 'Node'}
 ```
+
 # 声明：
-这份代码目前还有一堆BUG，仅作学习使用hahaha。
 目前还只是一个最初的想法，未来有时间再来慢慢完善
+没有认真DEBUG和优化性能，仅作为一个Demo验证思路，还有很多问题待解决
 比如NodeA的子类NodeB又怎么正确序列化，函数重载、子类属性和父类属性重名、虚基类，这些问题，都是需要去解决的
-至于为什么我采用了get_config的方法，是受到keras的启发
+至于为什么我采用了get_config的方法，是受到了keras的启发
 ```python
 class Quantizer2D(tf.keras.layers.Layer):
     def __init__(self,soft_sigma=1.0,hard_sigma=1e7,**kwargs):
@@ -291,4 +304,4 @@ class Quantizer2D(tf.keras.layers.Layer):
         })
         return config
 ```
-最后，作为学生C++水平有限，我自己也有很多疑问正等待解决，欢迎大家来一起讨论o(*￣▽￣*)ブ
+最后，作为学生，C++水平有限，我自己也有很多疑问正等待解决，欢迎大家来一起讨论o(*￣▽￣*)ブ
