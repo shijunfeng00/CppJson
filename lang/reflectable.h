@@ -1,0 +1,117 @@
+#ifndef __REFLECTABLE_H__
+#define __REFLECTABLE_H__
+#include"config.h"
+#include<vector>
+#include<functional>
+struct Reflectable
+{
+public:
+	virtual ~Reflectable(){};
+	template<typename T,typename ...Args>
+	struct Regist;
+	template<typename T>
+	struct Regist<T>;
+	template<typename T>
+	Config get_config(const T*object)const;//得到T的类型信息和名称,判断T类型的属性键值对是否建立,没有建立就建立(只建立一次) 
+	template<typename ClassType,typename FieldType>
+	static void set_field(ClassType&object,std::string field_name,const FieldType&data);//设置属性值，因为已经有类型信息，所以不需要调用default_constructors[type]里面的函数来构造 
+	template<typename FieldType=void*,typename ClassType>
+	static FieldType get_field(ClassType&object,std::string field_name); 
+	template<typename FieldType=void*>
+	static FieldType get_field(void*object,std::string class_name,std::string field_name); 
+	static std::string&get_field_type(std::string class_name,std::string field_name); 
+	static void*get_instance(std::string class_name);
+	static void delete_instance(std::string class_name,void*object); 
+	using ClassName=std::string;
+	using FieldName=std::unordered_map<std::string,std::pair<std::string,std::size_t>>;
+	static std::unordered_map<ClassName,FieldName>field;
+//private:	
+	static std::unordered_map<ClassName,std::function<void*(void)>>default_constructors;
+	static std::unordered_map<ClassName,std::function<void(void*)>>default_deconstructors;
+};
+std::unordered_map<std::string,std::function<void*(void)>>Reflectable::default_constructors;
+std::unordered_map<std::string,std::function<void(void*)>>Reflectable::default_deconstructors;
+std::unordered_map<std::string,std::unordered_map<std::string,std::pair<std::string,std::size_t>>>Reflectable::field;
+template<typename T>
+Config Reflectable::get_config(const T*object)const
+{
+	std::string class_name=GET_TYPE_NAME(T);
+	Config config(
+		field.find(class_name)==field.end()?&field[class_name]:nullptr,object);//如果不存在就创建，否则不做操作 
+	config.update({{"class_name",class_name}});
+	return config;
+}
+template<typename ClassType,typename FieldType>
+void Reflectable::set_field(ClassType&object,std::string field_name,const FieldType&data)
+{
+	std::string class_name=GET_TYPE_NAME(ClassType);
+	std::size_t offset=Reflectable::field[class_name][field_name].second;
+	*(FieldType*)((std::size_t)(&object)+offset)=data;
+}
+template<typename FieldType=void*,typename ClassType>
+FieldType Reflectable::get_field(ClassType&object,std::string field_name)
+{
+	std::string class_name=GET_TYPE_NAME(ClassType);
+	std::size_t offset=Reflectable::field[class_name][field_name].second;
+	if constexpr(std::is_same<FieldType,void*>::value)
+		return (void*)((std::size_t)(&object)+offset);
+	else
+		return std::ref(*(FieldType*)((std::size_t)(&object)+offset));
+}
+template<typename FieldType=void*>
+FieldType Reflectable::get_field(void*object,std::string class_name,std::string field_name)
+{
+	std::size_t offset=Reflectable::field[class_name][field_name].second;
+	if constexpr(std::is_same<FieldType,void*>::value)
+		return (void*)((std::size_t)(object)+offset);
+	else
+		return std::ref(*(FieldType*)((std::size_t)(&object)+offset));
+}
+std::string&Reflectable::get_field_type(std::string class_name,std::string field_name)
+{
+	return Reflectable::field[class_name][field_name].first;
+}
+void*Reflectable::get_instance(std::string class_name)
+{
+	return Reflectable::default_constructors[class_name]();
+}
+void Reflectable::delete_instance(std::string class_name,void*object)
+{
+	default_deconstructors[class_name](object);
+}
+template<typename T,typename ...Args>
+struct Reflectable::Regist
+{
+	Regist()
+	{
+		T object;
+		object.get_config();//必须调用get_config,才能建立类型信息,所以这里必须先调用一次Reflectable的get_config 
+		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //默认构造函数 
+		{
+			return (void*)(new T());
+		};
+		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void //析构函数 
+		{
+			delete ((T*)object);
+		};
+		Regist<Args...>();
+	}
+};
+template<typename T>
+struct Reflectable::Regist<T>
+{
+	Regist()
+	{
+		T object;
+		object.get_config();
+		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //默认构造函数 
+		{
+			return (void*)(new T());
+		};
+		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void //析构函数 
+		{
+			delete ((T*)object);
+		};
+	}
+};
+#endif
