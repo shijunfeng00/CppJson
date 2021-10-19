@@ -7,6 +7,7 @@ C++没有反射与序列化，大部分自己实现的序列化用起来都很�
 * 侵入式
 * 运行时
 * 利用编译信息进行代码生成
+
 但是很多代码用起来都异常繁琐，比如类似这样的
 
 [Ubp.a：99 行实现 C++ 简单反射](https://zhuanlan.zhihu.com/p/112914534)
@@ -27,7 +28,9 @@ int main(){
         cout<<nv.first<<":"<<nv.second->As<float>().Of(p)
 }
 ```
+
 以及像这样用宏来定义的
+
 ```cpp
 struct test_type0{
 DEF_FIELD_BEGIN(test_type0)
@@ -52,7 +55,7 @@ DEF_FIELD_END
 所以我的代码尽可能简化了代码使用的这一过程
 我将会在后文中给出充分的示例。
 # 安装
-Header Only设计，使用起来非常方便，只需要包含相关头文件即可
+采用Header Only设计，使用起来非常方便，只需要包含相关头文件即可
 ```#include"lang/serializble.h"```。
 代码采用C++17/GCC10.3.0，没有什么其他额外的依赖。
 # 使用
