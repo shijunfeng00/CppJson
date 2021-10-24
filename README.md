@@ -69,10 +69,10 @@ DEF_FIELD_END
 * C++基本类型(int,float,char,...)
 * 含有迭代器的容器(std::vector,std::list,std::deque,...)
 * std::tuple和std::pair
-* 其他继承自Serializable的子类
+* 其他正确实现了get_config以及调用Serializable::regist<T>注册的类
 * 数组(int a[15]),std::array
 * 上述类型的组合及其指针(std::vector<std::pair<int*,float*>>)
-* 对于继承的子类暂时还不支持
+* 支持派生类的序列化与反序列化,目前不支持多重继承
 ## 注册
 首先看一个简单的例子
 ```cpp
@@ -84,7 +84,6 @@ struct NodeA
 ```
 现在我想要这个类支持反射、序列化和反序列化
 只需要做出如下修改：
-* 继承```Serializable```类
 * 实现```Config::get_config```方法
 * 在main函数中使用```Serializable::Regist<NodeA>()```完成注册
 ## 反射、序列化与反序列化
@@ -105,14 +104,14 @@ NodeA node2=Serializable::loads<NodeA>(node);          //反序列化
 #include<fstream>
 #include<cstring>
 using namespace std;
-struct Node:public Serializable  //1.继承Serializable类
+struct Node
 {
 	Node()
 	{
 		std::memset(z,0,sizeof(z));
 		t={1,2,3,4};
 	}
-	Config get_config()const  //实现Config get_config()const 方法
+	Config get_config()const                                                    //1.实现Config get_config()const 方法
 	{
 		Config config=Serializable::get_config(this); 
 		config.update({
@@ -130,7 +129,7 @@ struct Node:public Serializable  //1.继承Serializable类
 };
 int main()
 {
-	Serializable::Regist<Node>();                                                   //3.完成简单注册
+	Serializable::Regist<Node>();                                                   //2.完成简单注册
 	Node a=*(Node*)Reflectable::get_instance("Node");                               //创建实例
 	Reflectable::set_field(a,"x",make_tuple(3.2f,make_pair(5,string{"test"})));     //通过名称修改属性
 	Reflectable::set_field(a,"y",std::vector<Node*>{new Node,nullptr}); 
@@ -174,7 +173,7 @@ json
 #include<fstream>
 #include"lang/serializable.h"
 using namespace std;
-struct Node:public Serializable
+struct Node
 {
 	Node(Node*lson,Node*rson,std::function<int(Node*,Node*)>eval):value(eval(lson,rson)),lson(lson),rson(rson){}
 	Node(int value=0):value(value),lson(nullptr),rson(nullptr){}
@@ -255,7 +254,87 @@ res
  'value': 49,
  'class_name': 'Node'}
 ```
+### 示例代码3：派生类的序列化与反序列化
+```cpp
+//对于派生类的序列化与反序列化
+#include"lang/serializable.h"
+#include"iostream"
+using namespace std;
+struct Father
+{
+	int x=1;
+	std::vector<int>y{1,2,3,4};
+	virtual Config get_config()const
+	{
+		Config config=Serializable::get_config(this);
+		config.update({
+			{"x",x},
+			{"y",y}
+		});
+		return config;
+	}
+	virtual ~Father(){}
+};
+struct Son:public Father
+{
+	float z[4]={5,6,7,8};
+	Config get_config()const
+	{
+		Config config=Serializable::Inherit<Father>::get_config(this);
+		config.update({
+			{"z",z}
+		});
+		return config;
+	}
+};
+struct GrandSon:public Son
+{
+	std::tuple<int,std::string>t={2021,"shijunfeng00"};
+	Config get_config()const
+	{
+		Config config=Serializable::Inherit<Son>::get_config(this);
+		config.update({
+			{"t",t}
+		});
+		return config;
+	}
+};
+int main()
+{
+	Serializable::Regist<Father,Son,GrandSon>();
+	Father*son=new GrandSon(); 
+	son->x=233;
+	std::string json=Serializable::dumps(*son);
+	cout<<"json string:\n"<<json<<endl; 
+	GrandSon*gs=(GrandSon*)Serializable::loads(json);
+	cout<<gs->get_config().serialized_to_string(true)<<endl;
+	cout<<gs->x<<endl;
+	for(auto&it:gs->y)
+		cout<<it<<",";
+	cout<<endl;
+	for(auto&it:gs->z)
+		cout<<it<<",";
+	cout<<endl;
+	cout<<get<0>(gs->t)<<" "<<get<1>(gs->t);
+}
+/*
+json string:
+{ "t":[2021,"shijunfeng00"], "y":[1,2,3,4], "z":[5,6,7,8], "x":233, "class_name":"GrandSon" }
+I AM OK
+{
+"t":[2021,"shijunfeng00"],
+"y":[1,2,3,4],
+"z":[5,6,7,8],
+"x":233,
+"class_name":"GrandSon"
+}
 
+233
+1,2,3,4,
+5,6,7,8,
+2021 shijunfeng00
+*/
+```
 # 声明：
 目前还只是一个最初的想法，未来有时间再来慢慢完善
 没有认真DEBUG和优化性能，仅作为一个Demo验证思路，还有很多问题待解决
