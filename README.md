@@ -1,6 +1,5 @@
 # CppJson
 轻量级C++对象序列化框架，同时支持部分运行时反射
-
 # 项目背景
 C++没有原生的反射与序列化，至少从语言层面来说是暂时不支持的
 很多时候是需要自己手动去写反射相关的代码
@@ -58,7 +57,7 @@ DEF_FIELD_END
 
 ```#include"lang/serializble.h"```。
 
-代码采用C++17/GCC10.3.0，没有什么其他额外的依赖。
+我在自己电脑上使用`C++17/GCC10.3.0`进行编译，除此以外没有什么其他额外的依赖。
 
 # 使用
 
@@ -66,12 +65,12 @@ DEF_FIELD_END
 
 目前我的代码支持属性满足以下类型条件的class的序列化与反序列化
 (反射只支持属性值,不过如法炮制可以支持成员函数，只是我的目标是序列化和反序列化，因此成员函数暂时没考虑)
-* C++基本类型(int,float,char,...)
-* 含有迭代器的容器(std::vector,std::list,std::deque,...)
-* std::tuple和std::pair
-* 其他正确实现了get_config以及调用Serializable::regist<T>注册的类
-* 数组(int a[15]),std::array
-* 上述类型的组合及其指针(std::vector<std::pair<int*,float*>>)
+* C++基本类型(`int`,`float`,`char`,...)
+* 含有迭代器的容器(`std::vector`,`std::list`,`std::deque`,...)
+* `std::tuple`和`std::pair`
+* 其他正确实现了`get_config`以及调用`Serializable::Regist<T>`注册的类
+* 数组`int a[15]`,`std::array`
+* 上述类型的组合及其指针,`std::vector<std::pair<int*,float*>>`
 * 支持派生类的序列化与反序列化,目前不支持多重继承
 ## 注册
 首先看一个简单的例子
@@ -239,7 +238,7 @@ res
 
 输出结果
 
-```
+```python
 {'rson': {'rson': None, 'lson': None, 'value': 6, 'class_name': 'Node'},
  'lson': {'rson': {'rson': {'rson': None,
     'lson': None,
