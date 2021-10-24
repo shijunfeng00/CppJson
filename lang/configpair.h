@@ -14,15 +14,15 @@ struct ConfigPair
 {
 	template<typename T>
 	ConfigPair(const std::string&name,const T&object);
-	std::string key;    //³ÉÔ±±äÁ¿Ãû³Æ£¬ÓëÉùÃ÷µÄÃû³Æ¶ÔÓ¦ 
-	std::string value;  //³ÉÔ±º¯ÊıµÄÖµ×ª»¯Îª×Ö·û´®µÄ½á¹û(Èç¹ûÊÇ»ù±¾ÀàĞÍ£¬ÔòÖ±½Ó×ª»¯Îª×Ö·û´®£¬·ñÔòÎªÇ¶Ì××Öµä½á¹¹) 
-	std::string type;   //ÀàĞÍ,GET_TYPE_NAME(T),Ïàµ±ÓÚ¼ÇÂ¼ÏÂÀàĞÍÁË£¬·´ĞòÁĞ»¯»áÓÃµ½ 
-	std::size_t address;//µØÖ·£¬ºóÃæ½«ÓÃÀ´¼ÆËã³ÉÔ±±äÁ¿µØÖ·Æ«ÒÆÁ¿£¬·´ĞòÁĞ»¯µÄÊ±ºòÍ¨¹ı(void*)(¶ÔÏóµØÖ·+Æ«ÒÆÁ¿)À´·ÃÎÊ³ÉÔ±±äÁ¿ 
+	std::string key;    //æˆå‘˜å˜é‡åç§°ï¼Œä¸å£°æ˜çš„åç§°å¯¹åº” 
+	std::string value;  //æˆå‘˜å‡½æ•°çš„å€¼è½¬åŒ–ä¸ºå­—ç¬¦ä¸²çš„ç»“æœ(å¦‚æœæ˜¯åŸºæœ¬ç±»å‹ï¼Œåˆ™ç›´æ¥è½¬åŒ–ä¸ºå­—ç¬¦ä¸²ï¼Œå¦åˆ™ä¸ºåµŒå¥—å­—å…¸ç»“æ„) 
+	std::string type;   //ç±»å‹,GET_TYPE_NAME(T),ç›¸å½“äºè®°å½•ä¸‹ç±»å‹äº†ï¼Œååºåˆ—åŒ–ä¼šç”¨åˆ° 
+	std::size_t address;//åœ°å€ï¼Œåé¢å°†ç”¨æ¥è®¡ç®—æˆå‘˜å˜é‡åœ°å€åç§»é‡ï¼Œååºåˆ—åŒ–çš„æ—¶å€™é€šè¿‡(void*)(å¯¹è±¡åœ°å€+åç§»é‡)æ¥è®¿é—®æˆå‘˜å˜é‡ 
 	template<typename Object>
 	static std::string get_config_string(const Object&object);
-	static std::unordered_map<std::string,std::function<void(void*,const std::string&)>>from_config_string; //´Ó×Ö·û´®ÖĞ»¹Ô­Êı¾İ
+	static std::unordered_map<std::string,std::function<void(void*,const std::string&)>>from_config_string; //ä»å­—ç¬¦ä¸²ä¸­è¿˜åŸæ•°æ®
 };
-std::unordered_map<std::string,std::function<void(void*,const std::string&)>>ConfigPair::from_config_string; //´Ó×Ö·û´®ÖĞ»¹Ô­Êı¾İ
+std::unordered_map<std::string,std::function<void(void*,const std::string&)>>ConfigPair::from_config_string; //ä»å­—ç¬¦ä¸²ä¸­è¿˜åŸæ•°æ®
 template<typename T>
 ConfigPair::ConfigPair(const std::string&name,const T&object):
 	key(name),
@@ -33,10 +33,10 @@ template<typename Object>
 std::string ConfigPair::get_config_string(const Object&field)
 {
 	std::ostringstream oss;
-	if constexpr(std::is_fundamental<Object>::value&(!std::is_same<Object,char*>::value)) //»ù±¾ÀàĞÍ,int,float,..,µ«ÊÇÅÅ³ıchar*
+	if constexpr(std::is_fundamental<Object>::value&(!std::is_same<Object,char*>::value)) //åŸºæœ¬ç±»å‹,int,float,..,ä½†æ˜¯æ’é™¤char*
 	{
-		#ifdef __SERIALIZABLE_H__ //Ö»ÓĞĞòÁĞ»¯µÄÊ±ºò²ÅĞèÒªÕâ¸ö
-		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void //´Ó×Ö·û´®ÖĞ»¹Ô­Êı¾İ
+		#ifdef __SERIALIZABLE_H__ //åªæœ‰åºåˆ—åŒ–çš„æ—¶å€™æ‰éœ€è¦è¿™ä¸ª
+		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void //ä»å­—ç¬¦ä¸²ä¸­è¿˜åŸæ•°æ®
 		{
 			std::istringstream iss(str);
 			Object value;
@@ -47,13 +47,13 @@ std::string ConfigPair::get_config_string(const Object&field)
 		oss<<field;
 		return oss.str();
 	}
-	else if constexpr(std::is_same<Object,std::string>::value)  //×Ö·û´®,std::string
+	else if constexpr(std::is_same<Object,std::string>::value)  //å­—ç¬¦ä¸²,std::string
 	{
 		#ifdef __SERIALIZABLE_H__
-		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void //Ö»²âÊÔ¹ıstd::string
+		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void //åªæµ‹è¯•è¿‡std::string
 		{
 			Object value;
-			char ch;//³ÔµôË«ÒıºÅ
+			char ch;//åƒæ‰åŒå¼•å·
 			std::istringstream iss(str);
 			iss>>ch>>value;
 			value.pop_back();
@@ -63,24 +63,24 @@ std::string ConfigPair::get_config_string(const Object&field)
 		oss<<"\""<<field<<"\"";
 		return oss.str();
 	}
-	else if constexpr(std::is_same<Object,char*>::value)  //×Ö·û´®,char*£¬Õâ¸öÃ»DEBGU£¬¿ÉÄÜÓĞ¿Ó
+	else if constexpr(std::is_same<Object,char*>::value)  //å­—ç¬¦ä¸²,char*ï¼Œè¿™ä¸ªæ²¡DEBGUï¼Œå¯èƒ½æœ‰å‘
 	{
 		#ifdef __SERIALIZABLE_H__
 		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void
 		{
 			std::string value;
-			char ch;//³ÔµôË«ÒıºÅ
+			char ch;//åƒæ‰åŒå¼•å·
 			std::istringstream iss(str);
 			iss>>ch>>value;
 			value.pop_back();
-			field=(void*)malloc(sizeof(char)*(value.size()+1)); //´«ÈëµÄfield×îºÃÊÇnullptr
-			memcpy(field,value.c_str(),value.size()+1);//¼Ó1ÊÇÒòÎª'\0'
+			field=(void*)malloc(sizeof(char)*(value.size()+1)); //ä¼ å…¥çš„fieldæœ€å¥½æ˜¯nullptr
+			memcpy(field,value.c_str(),value.size()+1);//åŠ 1æ˜¯å› ä¸º'\0'
 		};
 		#endif
 		oss<<"\""<<field<<"\"";
 		return oss.str();
 	}
-	else if constexpr(std::is_pointer<Object>::value) //Ö¸Õë
+	else if constexpr(std::is_pointer<Object>::value) //æŒ‡é’ˆ
 	{
 		#ifdef __SERIALIZABLE_H__
 		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void
@@ -102,14 +102,9 @@ std::string ConfigPair::get_config_string(const Object&field)
 			return"null";
 		return get_config_string<typename std::remove_pointer<Object>::type>(*field);
 	}
-	else if constexpr(IsSerializableType<Object>::value) //¿ÉĞòÁĞ»¯µÄ·Ç»ù±¾ÀàĞÍ
+	else if constexpr(IsSerializableType<Object>::value) //å¯åºåˆ—åŒ–çš„éåŸºæœ¬ç±»å‹
 	{
-		#ifdef __SERIALIZABLE_H__
-		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void
-		{
-			Object::from_config_string[GET_TYPE_NAME(Object)](field,str);
-		};
-		#endif
+		//from_config_stringå°†åœ¨Serializable::Regist<T>()ä¸­èµ‹å€¼
 		return field.get_config().serialized_to_string(false);
 	}
 	else if constexpr(IsTupleOrPair<Object>::value)
@@ -124,15 +119,15 @@ std::string ConfigPair::get_config_string(const Object&field)
 		oss<<"]";
 		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void 
 		{
-			auto values=unpacking_list(str);                             //×Ö·û´®ĞÎÊ½µÄÖµ
+			auto values=unpacking_list(str);                             //å­—ç¬¦ä¸²å½¢å¼çš„å€¼
 			for_each_element(*(Object*)field,[&](auto&it,int index){
-				std::string type_name=GET_TYPE_NAME(decltype(it));       //µÃµ½Ã¿¸öÔªËØµÄÀàĞÍ
-				from_config_string[type_name](&it,values[index]);	     //È»ºóÕÒµ½¶ÔÓ¦µÄº¯Êı,ÒÀ´Î»¹Ô­
-			}); //tupleÃ¿¸öÎ»µÄÔªËØÀàĞÍÊÇ²»»á¸Ä±äµÄ
+				std::string type_name=GET_TYPE_NAME(decltype(it));       //å¾—åˆ°æ¯ä¸ªå…ƒç´ çš„ç±»å‹
+				from_config_string[type_name](&it,values[index]);	     //ç„¶åæ‰¾åˆ°å¯¹åº”çš„å‡½æ•°,ä¾æ¬¡è¿˜åŸ
+			}); //tupleæ¯ä¸ªä½çš„å…ƒç´ ç±»å‹æ˜¯ä¸ä¼šæ”¹å˜çš„
 		};
 		return oss.str();
 	}
-	else if constexpr(IsIterableType<Object>::value&(!std::is_same<Object,std::string>::value))//µü´úÆ÷
+	else if constexpr(IsIterableType<Object>::value&(!std::is_same<Object,std::string>::value))//è¿­ä»£å™¨
 	{
 		using element_type=typename std::remove_const<typename std::remove_reference<decltype(*field.begin())>::type>::type;
 		std::ostringstream oss;
@@ -141,7 +136,7 @@ std::string ConfigPair::get_config_string(const Object&field)
 		for(auto&it:field)
 		{
 			index++;
-			if(index==field.size()) //×îºóÒ»¸öÔªËØ
+			if(index==field.size()) //æœ€åä¸€ä¸ªå…ƒç´ 
 				oss<<get_config_string<element_type>(it);
 			else
 				oss<<get_config_string<element_type>(it)<<",";
@@ -151,19 +146,11 @@ std::string ConfigPair::get_config_string(const Object&field)
 		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void
 		{
 			std::vector<std::string>values=unpacking_list(str);
-			Object object(values.size());//ÔªËØ¸öÊıÊÇ¿ÉÒÔÈ·¶¨µÄ£¬Ò»´ÎĞÔ·ÖÅäºÃ¿Õ¼ä
+			Object object(values.size());//å…ƒç´ ä¸ªæ•°æ˜¯å¯ä»¥ç¡®å®šçš„ï¼Œä¸€æ¬¡æ€§åˆ†é…å¥½ç©ºé—´
 			int index=0;
-			for(auto&it:object)                                     //Object¿ÉÄÜÊÇstd::list,std::deque,ËùÒÔ²»ÄÜÖ±½ÓÏÂ±ê·ÃÎÊ
+			for(auto&it:object)                                     //Objectå¯èƒ½æ˜¯std::list,std::deque,æ‰€ä»¥ä¸èƒ½ç›´æ¥ä¸‹æ ‡è®¿é—®
 			{
-				if constexpr(std::is_pointer<element_type>::value&&IsSerializableType<typename std::remove_pointer<element_type>::type>::value)
-				{ //Serialiable×ÓÀàÖ¸Õë
-					using remove_ptr_type=typename std::remove_pointer<element_type>::type;
-					remove_ptr_type::from_config_string[GET_TYPE_NAME(element_type)](&it,values[index]);
-				}
-				else if constexpr(IsSerializableType<element_type>::value)
-					element_type::from_config_string[GET_TYPE_NAME(element_type)](&it,values[index]); 
-				else
-					from_config_string[GET_TYPE_NAME(element_type)](&it,values[index]);//Öğ¸öÔªËØ»¹Ô­
+				from_config_string[GET_TYPE_NAME(element_type)](&it,values[index]);//é€ä¸ªå…ƒç´ è¿˜åŸ
 				++index;
 			}	
 			*(Object*)field=std::move(object);
@@ -171,7 +158,7 @@ std::string ConfigPair::get_config_string(const Object&field)
 		#endif	
 		return oss.str();
 	}
-	else if constexpr(IsArrayType<Object>::value) //C++Ô­ÉúÊı×é,int a[15];
+	else if constexpr(IsArrayType<Object>::value) //C++åŸç”Ÿæ•°ç»„,int a[15];
 	{
 		using element_type=typename std::remove_const<typename std::remove_reference<decltype(field[0])>::type>::type;
 		constexpr std::size_t length=sizeof(Object)/sizeof(element_type);
