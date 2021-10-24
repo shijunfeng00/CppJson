@@ -335,10 +335,7 @@ I AM OK
 2021 shijunfeng00
 */
 ```
-# 声明：
-目前还只是一个最初的想法，未来有时间再来慢慢完善
-没有认真DEBUG和优化性能，仅作为一个Demo验证思路，还有很多问题待解决
-比如NodeA的子类NodeB又怎么正确序列化，函数重载、子类属性和父类属性重名、虚基类，这些问题，都是需要去解决的
+# 写在最后：
 至于为什么我采用了get_config的方法，是受到了keras的启发
 ```python
 class Quantizer2D(tf.keras.layers.Layer):
@@ -381,4 +378,3 @@ class Quantizer2D(tf.keras.layers.Layer):
         })
         return config
 ```
-最后，作为学生，C++水平有限，我自己也有很多疑问正等待解决，欢迎大家来一起讨论o(*￣▽￣*)ブ
