@@ -3,7 +3,7 @@
 #include<fstream>
 #include<cstring>
 using namespace std;
-struct Node:public Serializable 
+struct Node
 {
 	Node()
 	{
@@ -28,16 +28,16 @@ struct Node:public Serializable
 };
 int main()
 {
-	Serializable::Regist<Node>();                                                   //×¢²á
-	Node a=*(Node*)Reflectable::get_instance("Node");                               //´´½¨ÊµÀı
-	Reflectable::set_field(a,"x",make_tuple(3.2f,make_pair(5,string{"test"})));     //Í¨¹ıÃû³ÆĞŞ¸ÄÊôĞÔ
+	Serializable::Regist<Node>();                                                   //æ³¨å†Œ
+	Node a=*(Node*)Reflectable::get_instance("Node");                               //åˆ›å»ºå®ä¾‹
+	Reflectable::set_field(a,"x",make_tuple(3.2f,make_pair(5,string{"test"})));     //é€šè¿‡åç§°ä¿®æ”¹å±æ€§
 	Reflectable::set_field(a,"y",std::vector<Node*>{new Node,nullptr}); 
-	int*z=(int*)Reflectable::get_field(a,"z");                                      //»ñµÃÊôĞÔ£¬²¢½øĞĞĞŞ¸Ä
+	int*z=(int*)Reflectable::get_field(a,"z");                                      //è·å¾—å±æ€§ï¼Œå¹¶è¿›è¡Œä¿®æ”¹
 	z[0]=2021,z[1]=10,z[2]=18;
 	a.t[0]=2021,a.t[1]=10,a.t[2]=19,a.t[3]=10;
-	std::string json=Serializable::dumps(a);                                        //ĞòÁĞ»¯Îªjson¸ñÊ½µÄ×Ö·û´®
+	std::string json=Serializable::dumps(a);                                        //åºåˆ—åŒ–ä¸ºjsonæ ¼å¼çš„å­—ç¬¦ä¸²
 	cout<<"json\n"<<json<<endl;         
-	Node&b=Serializable::loads<Node>(json);                                         //Í¨¹ıjson¸ñÊ½µÄ×Ö·û´®½øĞĞ·´ĞòÁĞ»¯
+	Node&b=Serializable::loads<Node>(json);                                         //é€šè¿‡jsonæ ¼å¼çš„å­—ç¬¦ä¸²è¿›è¡Œååºåˆ—åŒ–
 	cout<<endl<<a.get_config().serialized_to_string(true);
-	cout<<endl<<b.get_config().serialized_to_string(true);                          //´òÓ¡½á¹û
+	cout<<endl<<b.get_config().serialized_to_string(true);                          //æ‰“å°ç»“æœ
 } 
