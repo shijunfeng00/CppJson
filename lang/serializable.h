@@ -11,28 +11,30 @@ public:
 	template<typename T,typename ...Args>
 	struct Regist;
 	template<typename T>
+	struct Inherit;                                //æš‚æ—¶æ²¡è€ƒè™‘å¤šç»§æ‰¿çš„é—®é¢˜
+	template<typename T>
 	struct Regist<T>;
 	template<typename Object>
-	Config get_config(const Object*object)const; //Reflectable::get_config
+	static Config get_config(const Object*object); //Reflectable::get_config
 	template<typename Object>
-	static std::string dumps(const Object&object); //ĞòÁĞ»¯¶ÔÏó
+	static std::string dumps(const Object&object); //åºåˆ—åŒ–å¯¹è±¡
 	template<typename Object=void*>
-	static auto loads(const std::string&json);     //·´ĞòÁĞ»¯»¹Ô­¶ÔÏó
-	static std::unordered_map<std::string,std::function<void(void*,const std::string&)>>from_config_string;//²»Í¬ÀàĞÍ·´ĞòÁĞ»¯º¯Êı±í
-	static Config decode(const std::string&serialized);                              
-	void from_config(Config&config); //´ÓConfigÖĞ»¹Ô­Ô­Ê¼¶ÔÏó
+	static auto loads(const std::string&json);     //ååºåˆ—åŒ–è¿˜åŸå¯¹è±¡
+	static Config decode(const std::string&serialized); 
+	template<typename Object>                             
+	static void from_config(Object*object,Config&config); //ä»Configä¸­è¿˜åŸåŸå§‹å¯¹è±¡
 };
-std::unordered_map<std::string,std::function<void(void*,const std::string&)>>Serializable::from_config_string;
 template<typename Object>
-Config Serializable::get_config(const Object*object)const
+Config Serializable::get_config(const Object*object)
 {
-	return Reflectable::get_config(object);
+	return Reflectable::get_config(object);	
 }
-void Serializable::from_config(Config&config)
+template<typename Object>
+void Serializable::from_config(Object*object,Config&config)
 {
 	std::string&class_name=config["class_name"];
 	class_name.erase(                                        
-		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//È¥µôÁ½±ßµÄÒıºÅ
+		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//å»æ‰ä¸¤è¾¹çš„å¼•å·
 		class_name.end());
 	for(auto&it:config)
 	{
@@ -40,16 +42,12 @@ void Serializable::from_config(Config&config)
 		{
 			auto&field_name=it.first;
 			auto&value=it.second;
-			std::string&type=Reflectable::get_field_type(class_name,field_name);     //µÃµ½ÀàĞÍÃû³Æ
-			void*field=Reflectable::get_field(this,class_name,field_name);           //µÃµ½ÊôĞÔµØÖ·
-			if(type[type.size()-1]=='*'&&value=="null")                              //¿ÕÖ¸Õë
+			std::string&type=Reflectable::get_field_type(class_name,field_name);     //å¾—åˆ°ç±»å‹åç§°
+			void*field=Reflectable::get_field(object,class_name,field_name);           //å¾—åˆ°å±æ€§åœ°å€
+			if(type[type.size()-1]=='*'&&value=="null")                              //ç©ºæŒ‡é’ˆ
 				*(void**)field=nullptr;
-			else if(value[0]=='{') //struct
-				Serializable::from_config_string[type](field,value); //ÃüÃûÉÏÒ»ÖÂ
-			else if(value[0]=='[') //list
-				ConfigPair::from_config_string[type](field,value);
 			else 
-				ConfigPair::from_config_string[type](field,value);                    //ĞŞ¸ÄÖµ
+				ConfigPair::from_config_string[type](field,value);                    //ä¿®æ”¹å€¼
 		}
 	}
 }
@@ -58,9 +56,9 @@ std::string Serializable::dumps(const Object&object)
 {
 	return object.get_config().serialized_to_string();
 }
-Config Serializable::decode(const std::string&serialized) //¼òÂªµÄÓĞÏŞ×´Ì¬×Ô¶¯»ú£¿
+Config Serializable::decode(const std::string&serialized) //ç®€é™‹çš„æœ‰é™çŠ¶æ€è‡ªåŠ¨æœºï¼Ÿ
 {
-	constexpr int init=0;                                                          //¶¨Òå¸÷ÖÖ×´Ì¬
+	constexpr int init=0;                                                          //å®šä¹‰å„ç§çŠ¶æ€
 	constexpr int parse_value=1;
 	constexpr int parse_struct=2;
 	constexpr int parse_fundamental=3;
@@ -77,19 +75,19 @@ Config Serializable::decode(const std::string&serialized) //¼òÂªµÄÓĞÏŞ×´Ì¬×Ô¶¯»ú
 	for(int i=0;i<length;++i)
 	{
 		auto&it=serialized[i];
-		if(state==init)                                        //ÔÚÃ°ºÅÒÔÇ°µÄ×Ö·ûÎªÊôĞÔÃû
+		if(state==init)                                        //åœ¨å†’å·ä»¥å‰çš„å­—ç¬¦ä¸ºå±æ€§å
 		{
 			if(it==':')
-				state=parse_value;                             //Ã°ºÅÒÔºó¾ÍÊÇÊôĞÔÖµ¶ÔÓ¦µÄ×Ö·û´®
-			else if(it!='\"'&&it!='{'&&it!=','&&it!=' ')       //µ«ÊÇµÃÅÅ³ıÁ½±ßµÄË«ÒıºÅ
+				state=parse_value;                             //å†’å·ä»¥åå°±æ˜¯å±æ€§å€¼å¯¹åº”çš„å­—ç¬¦ä¸²
+			else if(it!='\"'&&it!='{'&&it!=','&&it!=' ')       //ä½†æ˜¯å¾—æ’é™¤ä¸¤è¾¹çš„åŒå¼•å·
 				key.push_back(it);
 		}
-		else if(state==parse_value) //¿ªÊ¼½âÎö½á¹û
+		else if(state==parse_value) //å¼€å§‹è§£æç»“æœ
 		{
-			if(it=='{')                                        //Èç¹ûÊÇ´óÀ¨ºÅ°üÆğÀ´µÄ£¬ÄÇ¾ÍÊÇstruct¶ÔÏó
+			if(it=='{')                                        //å¦‚æœæ˜¯å¤§æ‹¬å·åŒ…èµ·æ¥çš„ï¼Œé‚£å°±æ˜¯structå¯¹è±¡
 			{
 				value.push_back(it);
-				nested_struct_layer++;  //{{{}}}Ç¶Ì×,Óö×ó´óÀ¨ºÅ¼Ó1£¬ÓÖ´óÀ¨ºÅ-1,µ½0Ôò½áÊø
+				nested_struct_layer++;  //{{{}}}åµŒå¥—,é‡å·¦å¤§æ‹¬å·åŠ 1ï¼Œåˆå¤§æ‹¬å·-1,åˆ°0åˆ™ç»“æŸ
 				state=parse_struct;
 			}
 			else if(it=='[')
@@ -103,7 +101,7 @@ Config Serializable::decode(const std::string&serialized) //¼òÂªµÄÓĞÏŞ×´Ì¬×Ô¶¯»ú
 				value.push_back(it);
 				state=parse_string;
 			}
-			else if(it!=' ')                                        //·ñÔò¾ÍÊÇ»ù±¾ÀàĞÍ
+			else if(it!=' ')                                        //å¦åˆ™å°±æ˜¯åŸºæœ¬ç±»å‹
 			{
 				value.push_back(it);
 				state=parse_fundamental;
@@ -112,7 +110,7 @@ Config Serializable::decode(const std::string&serialized) //¼òÂªµÄÓĞÏŞ×´Ì¬×Ô¶¯»ú
 		else if(state==parse_string)
 		{
 			value.push_back(it);
-			if(it=='\"'&&serialized[i-1]!='\\') // \" ×ªÒå×Ö·û²»ÊÇ½áÊø.
+			if(it=='\"'&&serialized[i-1]!='\\') // \" è½¬ä¹‰å­—ç¬¦ä¸æ˜¯ç»“æŸ.
 			{
 				state=end_parse;
 				--i;
@@ -120,17 +118,17 @@ Config Serializable::decode(const std::string&serialized) //¼òÂªµÄÓĞÏŞ×´Ì¬×Ô¶¯»ú
 		}
 		else if(state==parse_fundamental) 
 		{
-			if(it==','||it=='}'||it=='\"') //Óöµ½¶ººÅ½áÊø,¶ÔÓÚ×îºóÒ»¸öÊôĞÔ£¬Óöµ½µÄ»áÊÇ´óÀ¨ºÅ£¬¶ÔÓÚ×Ö·û´®£¬Óöµ½Ë«ÒıºÅ
+			if(it==','||it=='}'||it=='\"') //é‡åˆ°é€—å·ç»“æŸ,å¯¹äºæœ€åä¸€ä¸ªå±æ€§ï¼Œé‡åˆ°çš„ä¼šæ˜¯å¤§æ‹¬å·ï¼Œå¯¹äºå­—ç¬¦ä¸²ï¼Œé‡åˆ°åŒå¼•å·
 			{
 				if(it=='\"')
-					value.push_back(it);  //Ë«ÒıºÅĞèÒªËã½øÖµ±¾Éí
+					value.push_back(it);  //åŒå¼•å·éœ€è¦ç®—è¿›å€¼æœ¬èº«
 				state=end_parse;
 				--i;
 				continue;
 			}
 			value.push_back(it);
 		}
-		else if(state==parse_iterable) //¿ÉÄÜÓĞÇ¶Ì×µÄÇé¿ö
+		else if(state==parse_iterable) //å¯èƒ½æœ‰åµŒå¥—çš„æƒ…å†µ
 		{
 			if(it==']'||it=='[')
 			{
@@ -145,7 +143,7 @@ Config Serializable::decode(const std::string&serialized) //¼òÂªµÄÓĞÏŞ×´Ì¬×Ô¶¯»ú
 			}
 			value.push_back(it);
 		}
-		else if(state==parse_struct)      //Óöµ½´óÀ¨ºÅ½áÊø
+		else if(state==parse_struct)      //é‡åˆ°å¤§æ‹¬å·ç»“æŸ
 		{
 			if(it=='}'||it=='{')
 			{
@@ -160,7 +158,7 @@ Config Serializable::decode(const std::string&serialized) //¼òÂªµÄÓĞÏŞ×´Ì¬×Ô¶¯»ú
 			}
 			value.push_back(it);
 		}
-		else if(state==end_parse)        //½âÎöÍêÒ»¸öÊôĞÔ¶ÔÓ¦µÄ¼üÖµ¶Ô£¬¼ÇÂ¼µ½configÖĞ
+		else if(state==end_parse)        //è§£æå®Œä¸€ä¸ªå±æ€§å¯¹åº”çš„é”®å€¼å¯¹ï¼Œè®°å½•åˆ°configä¸­
 		{
 			state=init;
 			config[key]=value;
@@ -174,13 +172,14 @@ Config Serializable::decode(const std::string&serialized) //¼òÂªµÄÓĞÏŞ×´Ì¬×Ô¶¯»ú
 template<typename Object=void*>
 auto Serializable::loads(const std::string&json)
 {
-	Config config=Serializable::decode(json);                //´Ójson×Ö·û´®»¹Ô­Config
+	Config config=Serializable::decode(json);                //ä»jsonå­—ç¬¦ä¸²è¿˜åŸConfig
 	std::string&class_name=config["class_name"];
 	class_name.erase(                                        
-		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//È¥µôÁ½±ßµÄÒıºÅ
+		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//å»æ‰ä¸¤è¾¹çš„å¼•å·
 		class_name.end());																																																																																																																																																
-	void*object=Reflectable::get_instance(class_name);        //´´½¨ÊµÀı
-	Serializable::from_config_string[class_name](object,json);//·´ĞòÁĞ»¯»¹Ô­
+	void*object=Reflectable::get_instance(class_name);        //åˆ›å»ºå®ä¾‹
+	std::cout<<"I AM OK\n";
+	ConfigPair::from_config_string[class_name](object,json);//ååºåˆ—åŒ–è¿˜åŸ
 	if constexpr(std::is_same<Object,void*>::value)
 		return object;
 	else
@@ -192,12 +191,12 @@ struct Serializable::Regist
 	Regist()
 	{
 		using Tptr=T*;
-		from_config_string[GET_TYPE_NAME(T)]=[](void*object,const std::string&value)->void    //ÊµÖÊ»¹ÊÇµ÷ÓÃfrom_config½øĞĞµİ¹é.
+		ConfigPair::from_config_string[GET_TYPE_NAME(T)]=[](void*object,const std::string&value)->void    //å®è´¨è¿˜æ˜¯è°ƒç”¨from_configè¿›è¡Œé€’å½’.
 		{
 			Config config=Serializable::decode(value);
-			(*(T*)object).from_config(config);
+			Serializable::from_config((T*)object,config);
 		};
-		from_config_string[GET_TYPE_NAME(Tptr)]=[](void*object,const std::string&value)->void //¶ÔÓ¦µÄÖ¸Õë
+		ConfigPair::from_config_string[GET_TYPE_NAME(Tptr)]=[](void*object,const std::string&value)->void //å¯¹åº”çš„æŒ‡é’ˆ
 		{
 			Config config=Serializable::decode(value);
 			if(value=="null")
@@ -207,7 +206,7 @@ struct Serializable::Regist
 			else
 			{
 		   		(*(Tptr*)object)=(T*)Reflectable::get_instance(GET_TYPE_NAME(T));
-				(*(Tptr*)object)->from_config(config);
+				Serializable::from_config((*(Tptr*)object),config);
 			}
 		};
 		Reflectable::Regist<T>();
@@ -220,12 +219,12 @@ struct Serializable::Regist<T>
 	Regist()
 	{
 		using Tptr=T*;
-		from_config_string[GET_TYPE_NAME(T)]=[](void*object,const std::string&value)->void   //ÊµÖÊ»¹ÊÇµ÷ÓÃfrom_config½øĞĞµİ¹é.
+		ConfigPair::from_config_string[GET_TYPE_NAME(T)]=[](void*object,const std::string&value)->void   //å®è´¨è¿˜æ˜¯è°ƒç”¨from_configè¿›è¡Œé€’å½’.
 		{
 			Config config=Serializable::decode(value);
-			(*(T*)object).from_config(config);
+			Serializable::from_config((T*)object,config);
 		};
-		from_config_string[GET_TYPE_NAME(Tptr)]=[](void*object,const std::string&value)->void //¶ÔÓ¦µÄÖ¸Õë
+		ConfigPair::from_config_string[GET_TYPE_NAME(Tptr)]=[](void*object,const std::string&value)->void //å¯¹åº”çš„æŒ‡é’ˆ
 		{
 			Config config=Serializable::decode(value);
 			if(value=="null")
@@ -235,10 +234,28 @@ struct Serializable::Regist<T>
 			else
 			{
 		   		(*(Tptr*)object)=(T*)Reflectable::get_instance(GET_TYPE_NAME(T));
-				(*(Tptr*)object)->from_config(config);
+				Serializable::from_config((*(Tptr*)object),config);
 			}
 		};
 		Reflectable::Regist<T>();
+	}
+};
+template<typename Parent>
+struct Serializable::Inherit
+{
+	template<typename Object>
+	static Config get_config(const Object*object)
+	{
+		Config parent_config=object->Parent::get_config();
+		auto sub_config=Reflectable::field.find(GET_TYPE_NAME(Object));
+		if(sub_config==Reflectable::field.end())
+			field[GET_TYPE_NAME(Object)]=Reflectable::field[GET_TYPE_NAME(Parent)];
+		Config config=Serializable::get_config(object);
+		for(auto&it:parent_config)
+			if(it.first!="class_name")
+				config[it.first]=it.second;
+		return config;
+		
 	}
 };
 #endif
