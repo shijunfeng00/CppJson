@@ -2,18 +2,18 @@
 #define __CONFIG_H__
 #include"configpair.h"
 #include<unordered_map>
-class Config//±¾ÉíÊÇÒ»¸ö¼üÖµ¶Ô£¬µ«ÔÚÃ¿Ò»¸öÀàĞÍµÚÒ»´Îµ÷ÓÃµÄÊ±ºòÉú³ÉÔËĞĞÊ±µÄÒ»Ğ©·´ÉäÏà¹ØµÄĞÅÏ¢ 
-{            //***field_infoÓ¦¸ÃÓÉSerializable¶ÔÏó¸ºÔğÇå³ş£¬ÕâÀï²»Ó¦¸ÃÉ¾³ıÖ¸Õë*** 
+class Config//æœ¬èº«æ˜¯ä¸€ä¸ªé”®å€¼å¯¹ï¼Œä½†åœ¨æ¯ä¸€ä¸ªç±»å‹ç¬¬ä¸€æ¬¡è°ƒç”¨çš„æ—¶å€™ç”Ÿæˆè¿è¡Œæ—¶çš„ä¸€äº›åå°„ç›¸å…³çš„ä¿¡æ¯ 
+{            //***field_infoåº”è¯¥ç”±Serializableå¯¹è±¡è´Ÿè´£æ¸…æ¥šï¼Œè¿™é‡Œä¸åº”è¯¥åˆ é™¤æŒ‡é’ˆ*** 
 public:
 	Config():field_info(nullptr){}
 	template<typename T>
 	Config(std::unordered_map<std::string,std::pair<std::string,std::size_t>>*field_info,T*object);
-	//ÔÚµÚÒ»´Î±»µ÷ÓÃµÄÊ±ºò£¬ĞèÒªÈ¥´´½¨ÀàĞÍĞÅÏ¢,field_info¼ÇÂ¼ÊôĞÔÃû³Æ->(ÀàĞÍÃû³Æ,µØÖ·Æ«ÒÆÁ¿),¼ÇÂ¼ÀàĞÍÔÚºóĞø·´ĞòÁĞ»¯ÖĞĞèÒªÓÃµ½ 
-	std::string serialized_to_string(bool first_nested_layer=false)const;      //ĞòÁĞ»¯Îª×Ö·û´®  
-	std::string&operator[](const std::string&key)const; //¼üÖµ¶Ô 
+	//åœ¨ç¬¬ä¸€æ¬¡è¢«è°ƒç”¨çš„æ—¶å€™ï¼Œéœ€è¦å»åˆ›å»ºç±»å‹ä¿¡æ¯,field_infoè®°å½•å±æ€§åç§°->(ç±»å‹åç§°,åœ°å€åç§»é‡),è®°å½•ç±»å‹åœ¨åç»­ååºåˆ—åŒ–ä¸­éœ€è¦ç”¨åˆ° 
+	std::string serialized_to_string(bool first_nested_layer=false)const;      //åºåˆ—åŒ–ä¸ºå­—ç¬¦ä¸²  
+	std::string&operator[](const std::string&key)const; //é”®å€¼å¯¹ 
 	std::string&operator[](std::string&key);  
 	void update(const std::initializer_list<ConfigPair>&pairs);
-	//Ìí¼Ó±äÁ¿¶Ô,ÕâÊ±ºòConfigPairÖĞ»á¼ÇÂ¼ÏÂÀàĞÍĞÅÏ¢£¬¿ÉÒÔÔÚÔËĞĞÊ±´´½¨ºÃ·´ĞòÁĞ»¯Ê±ºòĞèÒª¶ÔÓ¦µÄ»¹Ô­º¯Êı;
+	//æ·»åŠ å˜é‡å¯¹,è¿™æ—¶å€™ConfigPairä¸­ä¼šè®°å½•ä¸‹ç±»å‹ä¿¡æ¯ï¼Œå¯ä»¥åœ¨è¿è¡Œæ—¶åˆ›å»ºå¥½ååºåˆ—åŒ–æ—¶å€™éœ€è¦å¯¹åº”çš„è¿˜åŸå‡½æ•°;
 	//config.update({{"namea",this->name1},{"name2",this->name2}});
 	auto begin();
 	auto end();
@@ -25,38 +25,38 @@ private:
 };
 std::ostream operator<<(std::ostream&os,Config&config);
 template<typename T>
-Config::Config(std::unordered_map<std::string,std::pair<std::string,std::size_t>>*field_info,T*object): //ÔÚµÚÒ»´Î±»µ÷ÓÃµÄÊ±ºò£¬ĞèÒªÈ¥´´½¨ÀàĞÍĞÅÏ¢ 
-	field_info(field_info),                                                                             //ÎªºóÃæµÄ·´ĞòÁĞ»¯×ö×¼±¸ 
+Config::Config(std::unordered_map<std::string,std::pair<std::string,std::size_t>>*field_info,T*object): //åœ¨ç¬¬ä¸€æ¬¡è¢«è°ƒç”¨çš„æ—¶å€™ï¼Œéœ€è¦å»åˆ›å»ºç±»å‹ä¿¡æ¯ 
+	field_info(field_info),                                                                             //ä¸ºåé¢çš„ååºåˆ—åŒ–åšå‡†å¤‡ 
 	class_header_address((std::size_t)(object)),                                                        
 	class_size(sizeof(T)){}
-void Config::update(const std::initializer_list<ConfigPair>&pairs)//Ìí¼Ó±äÁ¿¶Ô,config.update({{"namea",this->name1},{"name2",this->name2}});
+void Config::update(const std::initializer_list<ConfigPair>&pairs)//æ·»åŠ å˜é‡å¯¹,config.update({{"namea",this->name1},{"name2",this->name2}});
 {
 	for(auto&it:pairs)
 	{
 		config[it.key]=it.value;
-		if(field_info!=nullptr)                                                 //Ö»±»´´½¨Ò»´Î
+		if(field_info!=nullptr)                                                 //åªè¢«åˆ›å»ºä¸€æ¬¡
 		{
-			(*field_info)[it.key].first=it.type;                     //ÀàĞÍ
-			(*field_info)[it.key].second=it.address-this->class_header_address; //µØÖ·Æ«ÒÆÁ¿£¬ÓÃÀ´·ÃÎÊ³ÉÔ±±äÁ¿ 
+			(*field_info)[it.key].first=it.type;                                //ç±»å‹
+			(*field_info)[it.key].second=it.address-this->class_header_address; //åœ°å€åç§»é‡ï¼Œç”¨æ¥è®¿é—®æˆå‘˜å˜é‡ 
 		}
 	}
 }
-std::string&Config::operator[](const std::string&key)const //¼üÖµ¶Ô 
+std::string&Config::operator[](const std::string&key)const //é”®å€¼å¯¹ 
 {
 	return config[key];
 }
-std::string&Config::operator[](std::string&key) //¼üÖµ¶Ô 
+std::string&Config::operator[](std::string&key) //é”®å€¼å¯¹ 
 {
 	return config[key];
 }
-std::string Config::serialized_to_string(bool first_nested_layer)const //ĞòÁĞ»¯µÄ
+std::string Config::serialized_to_string(bool first_nested_layer)const //åºåˆ—åŒ–çš„
 {
 	std::ostringstream oss;
 	char end=first_nested_layer?'\n':' ';
 	oss<<"{"<<end;
 	for(auto it=config.begin(),next=++config.begin();it!=config.end();++it,next!=config.end()?++next:next)
 	{
-		if(it!=config.end()&&next==config.end()) //×îºóÒ»¸öÔªËØ£¬Ã»ÓĞ¶ººÅ
+		if(it!=config.end()&&next==config.end()) //æœ€åä¸€ä¸ªå…ƒç´ ï¼Œæ²¡æœ‰é€—å·
 			oss<<"\""<<(*it).first<<"\":"<<(*it).second<<end;
 		else
 			oss<<"\""<<(*it).first<<"\":"<<(*it).second<<","<<end;
