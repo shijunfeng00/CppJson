@@ -12,9 +12,9 @@ public:
 	template<typename T>
 	struct Regist<T>;
 	template<typename T>
-	Config get_config(const T*object)const;//µÃµ½TµÄÀàĞÍĞÅÏ¢ºÍÃû³Æ,ÅĞ¶ÏTÀàĞÍµÄÊôĞÔ¼üÖµ¶ÔÊÇ·ñ½¨Á¢,Ã»ÓĞ½¨Á¢¾Í½¨Á¢(Ö»½¨Á¢Ò»´Î) 
+	static Config get_config(const T*object);//å¾—åˆ°Tçš„ç±»å‹ä¿¡æ¯å’Œåç§°,åˆ¤æ–­Tç±»å‹çš„å±æ€§é”®å€¼å¯¹æ˜¯å¦å»ºç«‹,æ²¡æœ‰å»ºç«‹å°±å»ºç«‹(åªå»ºç«‹ä¸€æ¬¡) 
 	template<typename ClassType,typename FieldType>
-	static void set_field(ClassType&object,std::string field_name,const FieldType&data);//ÉèÖÃÊôĞÔÖµ£¬ÒòÎªÒÑ¾­ÓĞÀàĞÍĞÅÏ¢£¬ËùÒÔ²»ĞèÒªµ÷ÓÃdefault_constructors[type]ÀïÃæµÄº¯ÊıÀ´¹¹Ôì 
+	static void set_field(ClassType&object,std::string field_name,const FieldType&data);//è®¾ç½®å±æ€§å€¼ï¼Œå› ä¸ºå·²ç»æœ‰ç±»å‹ä¿¡æ¯ï¼Œæ‰€ä»¥ä¸éœ€è¦è°ƒç”¨default_constructors[type]é‡Œé¢çš„å‡½æ•°æ¥æ„é€  
 	template<typename FieldType=void*,typename ClassType>
 	static FieldType get_field(ClassType&object,std::string field_name); 
 	template<typename FieldType=void*>
@@ -25,7 +25,7 @@ public:
 	using ClassName=std::string;
 	using FieldName=std::unordered_map<std::string,std::pair<std::string,std::size_t>>;
 	static std::unordered_map<ClassName,FieldName>field;
-//private:	
+private:	
 	static std::unordered_map<ClassName,std::function<void*(void)>>default_constructors;
 	static std::unordered_map<ClassName,std::function<void(void*)>>default_deconstructors;
 };
@@ -33,11 +33,10 @@ std::unordered_map<std::string,std::function<void*(void)>>Reflectable::default_c
 std::unordered_map<std::string,std::function<void(void*)>>Reflectable::default_deconstructors;
 std::unordered_map<std::string,std::unordered_map<std::string,std::pair<std::string,std::size_t>>>Reflectable::field;
 template<typename T>
-Config Reflectable::get_config(const T*object)const
+Config Reflectable::get_config(const T*object)
 {
 	std::string class_name=GET_TYPE_NAME(T);
-	Config config(
-		field.find(class_name)==field.end()?&field[class_name]:nullptr,object);//Èç¹û²»´æÔÚ¾Í´´½¨£¬·ñÔò²»×ö²Ù×÷ 
+	Config config(&field[class_name],object);//å¦‚æœä¸å­˜åœ¨å°±åˆ›å»ºï¼Œå¦åˆ™ä¸åšæ“ä½œ 
 	config.update({{"class_name",class_name}});
 	return config;
 }
@@ -85,12 +84,12 @@ struct Reflectable::Regist
 	Regist()
 	{
 		T object;
-		object.get_config();//±ØĞëµ÷ÓÃget_config,²ÅÄÜ½¨Á¢ÀàĞÍĞÅÏ¢,ËùÒÔÕâÀï±ØĞëÏÈµ÷ÓÃÒ»´ÎReflectableµÄget_config 
-		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //Ä¬ÈÏ¹¹Ôìº¯Êı 
+		object.get_config(&object);//å¿…é¡»è°ƒç”¨get_config,æ‰èƒ½å»ºç«‹ç±»å‹ä¿¡æ¯,æ‰€ä»¥è¿™é‡Œå¿…é¡»å…ˆè°ƒç”¨ä¸€æ¬¡Reflectableçš„get_config 
+		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //é»˜è®¤æ„é€ å‡½æ•° 
 		{
 			return (void*)(new T());
 		};
-		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void //Îö¹¹º¯Êı 
+		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void //ææ„å‡½æ•° 
 		{
 			delete ((T*)object);
 		};
@@ -104,11 +103,11 @@ struct Reflectable::Regist<T>
 	{
 		T object;
 		object.get_config();
-		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //Ä¬ÈÏ¹¹Ôìº¯Êı 
+		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //é»˜è®¤æ„é€ å‡½æ•° 
 		{
 			return (void*)(new T());
 		};
-		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void //Îö¹¹º¯Êı 
+		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void //ææ„å‡½æ•° 
 		{
 			delete ((T*)object);
 		};
