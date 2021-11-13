@@ -76,24 +76,56 @@ DEF_FIELD_END
 ## 注册
 首先看一个简单的例子
 ```cpp
-struct NodeA
+struct Node
 {
 	int x;
 	float y;
+	std::string z;
 };
 ```
 现在我想要这个类支持反射、序列化和反序列化
 只需要做出如下修改：
 * 实现```Config::get_config```方法
+```cpp
+	Config get_config()const
+	{
+		Config config=Serializable::get_config(this);
+		config.update({
+			{"x",x},
+			{"y",y},
+			{"z",z}
+		});
+		return config;
+	}
+```
 * 在main函数中使用```Serializable::Regist<NodeA>()```完成注册
 ## 反射、序列化与反序列化
 
 完成简单注册后，然后就可以使用如下方法
 ```cpp
-NodeA node=*(NodeA*)Reflectable::get_instance("NodeA") //创建对象
-Reflectable::set_field(node,"x",5);                    //修改属性值
-std::string json=Serializable::dumps(node);            //序列化
-NodeA node2=Serializable::loads<NodeA>(node);          //反序列化
+	Serializable::Regist<Node>();                                         //注册
+	void*object=Reflectable::get_instance("Node");                        //创建实例
+	Reflectable::set_field<int>(object,"Node","x",4);                     //通过反射修改值
+	Reflectable::set_field<float>(object,"Node","y",5);
+	Reflectable::set_field<std::string>(object,"Node","z","test");
+	
+	cout<<Reflectable::get_field<int>(object,"Node","x")<<endl;           //通过反射得到值
+	cout<<Reflectable::get_field<float>(object,"Node","y")<<endl;
+	cout<<Reflectable::get_field<std::string>(object,"Node","z")<<endl;
+	
+	cout<<(*(Node*)object).x<<endl;                                       //正常访问成员变量
+	cout<<(*(Node*)object).y<<endl;
+	cout<<(*(Node*)object).z<<endl;
+	
+	std::string json=Serializable::dumps(*(Node*)object);                 //序列化
+	
+	cout<<json;
+	
+	Node b=Serializable::loads<Node>(json);                               //反序列化
+	
+	cout<<b.x<<endl;                                                      //正常访问成员变量
+	cout<<b.y<<endl;
+	cout<<b.z<<endl;
 ```
 ## 代码示例
 
