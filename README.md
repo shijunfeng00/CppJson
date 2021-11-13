@@ -67,9 +67,10 @@ DEF_FIELD_END
 (反射只支持属性值,不过如法炮制可以支持成员函数，只是我的目标是序列化和反序列化，因此成员函数暂时没考虑)
 * C++基本类型(`int`,`float`,`char`,...)
 * 含有迭代器的容器(`std::vector`,`std::list`,`std::deque`,...)
+* 容器适配器(`std::map`,`std::set`,`std::unordered_map`,`std::unordered_set`,...)
 * `std::tuple`和`std::pair`
 * 其他正确实现了`get_config`以及调用`Serializable::Regist<T>`注册的类
-* 数组`int a[15]`,`std::array`
+* 数组`int a[15]`,`std::array<int,15>`
 * 上述类型的组合及其指针,`std::vector<std::pair<int*,float*>>`
 * 支持派生类的序列化与反序列化,目前不支持多重继承
 ## 注册
