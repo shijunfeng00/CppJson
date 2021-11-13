@@ -98,12 +98,11 @@ struct Node
 		return config;
 	}
 ```
-* 在main函数中使用```Serializable::Regist<NodeA>()```完成注册
+* 在main函数中使用```Serializable::Regist<Node>()```完成注册
 ## 反射、序列化与反序列化
 
-完成简单注册后，然后就可以使用如下方法
+完成简单注册后，然后就可以使用如下方法支持属性的反射，序列化，反序列化
 ```cpp
-	Serializable::Regist<Node>();                                         //注册
 	void*object=Reflectable::get_instance("Node");                        //创建实例
 	Reflectable::set_field<int>(object,"Node","x",4);                     //通过反射修改值
 	Reflectable::set_field<float>(object,"Node","y",5);
