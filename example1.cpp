@@ -26,7 +26,7 @@ struct Node
 	int z[3];
 	std::array<int,4>t;
 };
-int main()
+int main() 
 {
 	Serializable::Regist<Node>();                                                   //注册
 	Node a=*(Node*)Reflectable::get_instance("Node");                               //创建实例
