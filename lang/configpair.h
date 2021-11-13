@@ -119,10 +119,10 @@ std::string ConfigPair::get_config_string(const Object&field)
 		oss<<"]";
 		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void 
 		{
-			auto values=unpacking_list(str);                             //字符串形式的值
+			auto values=unpacking_list(str);                                     //字符串形式的值
 			for_each_element(*(Object*)field,[&](auto&it,int index){
-				std::string type_name=GET_TYPE_NAME(decltype(it));       //得到每个元素的类型
-				from_config_string[type_name](&it,values[index]);	     //然后找到对应的函数,依次还原
+				std::string type_name=GET_TYPE_NAME(decltype(it));               //得到每个元素的类型
+				from_config_string[type_name]((void*)(&it),values[index]);	     //然后找到对应的函数,依次还原
 			}); //tuple每个位的元素类型是不会改变的
 		};
 		return oss.str();
@@ -145,15 +145,31 @@ std::string ConfigPair::get_config_string(const Object&field)
 		#ifdef __SERIALIZABLE_H__
 		from_config_string[GET_TYPE_NAME(Object)]=[](void*field,const std::string&str)->void
 		{
-			std::vector<std::string>values=unpacking_list(str);
-			Object object(values.size());//元素个数是可以确定的，一次性分配好空间
-			int index=0;
-			for(auto&it:object)                                     //Object可能是std::list,std::deque,所以不能直接下标访问
+			if constexpr(IsSetOrMap<Object>::value)
 			{
-				from_config_string[GET_TYPE_NAME(element_type)](&it,values[index]);//逐个元素还原
-				++index;
-			}	
-			*(Object*)field=std::move(object);
+				std::vector<std::string>values=unpacking_list(str);
+				Object object;
+				for(auto&it:values)
+				{
+					element_type element;
+					from_config_string[GET_TYPE_NAME(element_type)](&element,it);
+					object.insert(element);
+				}
+			}
+			else
+			{
+				std::vector<std::string>values=unpacking_list(str);
+				Object object(values.size());//元素个数是可以确定的，一次性分配好空间
+				std::cout<<GET_TYPE_NAME(Object)<<std::endl;
+				int index=0;
+				for(auto&it:object)                                     //Object可能是std::list,std::deque,所以不能直接下标访问
+				{
+					from_config_string[GET_TYPE_NAME(element_type)](&it,values[index]);//逐个元素还原
+					++index;
+				
+				}
+				*(Object*)field=object;	
+			}
 		};
 		#endif	
 		return oss.str();
