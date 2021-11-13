@@ -1,34 +1,72 @@
 #ifndef __UNPACKING_H__
-#define __UNPACKINT_H__
+#define __UNPACKING_H__
 #include<vector>
 #include<string>
 #include<tuple>
 #include<utility>
 template<typename T>
-struct IsSerializableType; //±àÒëÆÚ¼ì²âÊÇ·ñÓĞ³ÉÔ±º¯Êıget_config,Èç¹ûvalue=true£¬ËµÃ÷¸ÃÀàĞÍÊÇÖ§³ÖĞòÁĞ»¯µÄ·Ç»ù±¾ÀàĞÍ(ÊµÏÖÁËget_config·½·¨) 
+struct HasCustomSerializeMethod;
+//æ˜¯å¦æœ‰è‡ªå®šä¹‰çš„åºåˆ—åŒ–ä¸ååºåˆ—åŒ–æˆå‘˜å‡½æ•°
 template<typename T>
-struct IsIterableType;     //ÊÇ·ñÊÇ¿Éµü´úµÄ£¬±ÈÈçstdÈİÆ÷ 
+struct IsSetOrMap;       
+//std::unordered_map,std::map,std::set,std::unordered_set
+template<typename T>
+struct IsSerializableType; 
+//ç¼–è¯‘æœŸæ£€æµ‹æ˜¯å¦æœ‰æˆå‘˜å‡½æ•°get_config,å¦‚æœvalue=trueï¼Œè¯´æ˜è¯¥ç±»å‹æ˜¯æ”¯æŒåºåˆ—åŒ–çš„éåŸºæœ¬ç±»å‹(å®ç°äº†get_configæ–¹æ³•) 
+template<typename T>
+struct IsIterableType;     
+//æ˜¯å¦æ˜¯å¯è¿­ä»£çš„ï¼Œæ¯”å¦‚stdå®¹å™¨ 
 template<typename T>
 struct IsTupleOrPair;
+//æ˜¯å¦æ˜¯std::tuple,std::pair
 template<typename Object>
 struct IsArrayType;	
+//æ˜¯å¦æ˜¯C++çš„åŸç”Ÿæ•°ç»„,int a[15]ï¼Œä¸è¿‡IsArrayType<std::array<int,15>>::value=0,è¿™ä¸ªä¼šè¢«æ£€æµ‹ä¸ºtupleã€‚ä½†æ˜¯ä¼¼ä¹æ²¡ä»€ä¹ˆå½±å“ï¼Œå‡‘åˆç€ç”¨äº†
 template <typename T, size_t N>
 inline constexpr size_t GetArrayLength(const T(&)[N]);
-inline std::vector<std::string>unpacking_list(const std::string&serialized); //ÁĞ±í½â°ü,"[1,2,3,4]"->["1","2","3","4"]
+//ç¼–è¯‘æœŸè·å¾—æ•°ç»„é•¿åº¦
+inline std::vector<std::string>unpacking_list(const std::string&serialized); 
+//åˆ—è¡¨è§£åŒ…,"[1,2,3,4]"->["1","2","3","4"]
 template<typename Object,int index=0>
-inline auto for_each_element(Object&object,auto&&callback);                 //±éÀústd::tuple,std::pairÃ¿¸öÔªËØ,ĞòÁĞ»¯/·´ĞòÁĞ»¯ ´«Èëº¯Êı¶ÔÏó¼´¿É
+inline auto for_each_element(Object&object,auto&&callback);                 
+//éå†std::tuple,std::pairæ¯ä¸ªå…ƒç´ ,åºåˆ—åŒ–/ååºåˆ—åŒ– ä¼ å…¥å‡½æ•°å¯¹è±¡å³å¯
+
 
 template<typename T>
-struct IsSerializableType                                  //±àÒëÆÚ¼ì²âÊÇ·ñÓĞ³ÉÔ±º¯Êıget_config,Èç¹ûvalue=true
-{                                                                      //ËµÃ÷¸ÃÀàĞÍÊÇÖ§³ÖĞòÁĞ»¯µÄ·Ç»ù±¾ÀàĞÍ(ÊµÏÖÁËget_config·½·¨) 
-    template<typename U>                                               //¿ÉÒÔÍ¨¹ıget_configÀ´½øĞĞĞòÁĞ»¯ 
+struct HasCustomSerializeMethod
+{
+    template<typename U>                                               
+    static auto check_dumps(int)->decltype(std::declval<U>().custom_dumps(),std::true_type());
+    template<typename U>
+	static std::false_type check_dumps(...);
+    template<typename U>                                               
+    static auto check_loads(int)->decltype(std::declval<U>().custom_loads(),std::true_type());
+    template<typename U>
+	static std::false_type check_loads(...);
+    static constexpr int value1=std::is_same<decltype(check_dumps<T>(0)),std::true_type>::value;
+    static constexpr int value2=std::is_same<decltype(check_loads<T>(0)),std::true_type>::value;
+    static constexpr int value=value1&&value2;
+};
+template<typename T>
+struct IsSetOrMap                                               
+{                                                                 
+    template<typename U>                                               
+        static auto check(int)->decltype(std::declval<U>().insert(std::declval<decltype(*std::declval<U>().begin())>()),std::true_type());
+    template<typename U>
+        static std::false_type check(...);
+    static constexpr int value = std::is_same<decltype(check<T>(0)),std::true_type>::value;
+};
+template<typename T>
+struct IsSerializableType                                              //ç¼–è¯‘æœŸæ£€æµ‹æ˜¯å¦æœ‰æˆå‘˜å‡½æ•°get_config,å¦‚æœvalue=true
+{                                                                      //è¯´æ˜è¯¥ç±»å‹æ˜¯æ”¯æŒåºåˆ—åŒ–çš„éåŸºæœ¬ç±»å‹(å®ç°äº†get_configæ–¹æ³•) 
+    template<typename U>                                               //å¯ä»¥é€šè¿‡get_configæ¥è¿›è¡Œåºåˆ—åŒ– 
         static auto check(int)->decltype(std::declval<U>().get_config(),std::true_type());
     template<typename U>
         static std::false_type check(...);
     static constexpr int value = std::is_same<decltype(check<T>(0)),std::true_type>::value;
 };
 template<typename T>
-struct IsIterableType                                     //ÊÇ·ñ¾ßÓĞµü´úÆ÷,Èçstd::vectorµÈÈİÆ÷µÄĞòÁĞ»¯ 
+struct IsIterableType                                                  //æ˜¯å¦å…·æœ‰è¿­ä»£å™¨,å¦‚std::vectorç­‰å®¹å™¨çš„åºåˆ—åŒ– 
 {
     template<typename U>
         static auto check(int)->decltype(std::declval<typename U::iterator>(),std::true_type());
@@ -61,14 +99,14 @@ inline constexpr size_t GetArrayLength(const T(&)[N])
     return N;
 }
 template<typename Object,int index=0>
-inline auto for_each_element(Object&object,auto&&callback)                              //¶ÔÓÚÃ¿Ò»¸öÔªËØ½øĞĞ±éÀú
+inline auto for_each_element(Object&object,auto&&callback)                              //å¯¹äºæ¯ä¸€ä¸ªå…ƒç´ è¿›è¡Œéå†
 {
 	callback(std::get<index>(object),index);
 	if constexpr(index+1<std::tuple_size<Object>::value)
 		for_each_element<Object,index+1>(object,callback);
 }
-inline std::vector<std::string>unpacking_list(const std::string&serialized)              //ÁĞ±í½â°ü,"[1,2,3,4]"->["1","2","3","4"]
-{                                                                                        //Ë¼Â·²Î¿¼Serializable::decode
+inline std::vector<std::string>unpacking_list(const std::string&serialized)              //åˆ—è¡¨è§£åŒ…,"[1,2,3,4]"->["1","2","3","4"]
+{                                                                                        //æ€è·¯å‚è€ƒSerializable::decode
 	constexpr int init=0;
 	constexpr int parse_fundamental=1;
 	constexpr int parse_struct=2;
@@ -79,8 +117,8 @@ inline std::vector<std::string>unpacking_list(const std::string&serialized)     
 	std::vector<std::string>vec;
 	std::string temp;
 	int length=serialized.size();
-	int nested_struct=0;             //Ç¶Ì×µÄÇé¿ö£º{{},{}}
-	int nested_iterable=0;           //Ç¶Ì×µÄÇé¿ö£º[[],[],{}]
+	int nested_struct=0;             //åµŒå¥—çš„æƒ…å†µï¼š{{},{}}
+	int nested_iterable=0;           //åµŒå¥—çš„æƒ…å†µï¼š[[],[],{}]
 	for(int i=0;i<length;++i)
 	{
 		auto&it=serialized[i];
@@ -114,7 +152,7 @@ inline std::vector<std::string>unpacking_list(const std::string&serialized)     
 		else if(state==parse_string)
 		{
 			temp.push_back(it);
-			if(it=='\"'&&serialized[i-1]!='\\') //×ªÒå×Ö·û²»ÊÇ½áÊø
+			if(it=='\"'&&serialized[i-1]!='\\') //è½¬ä¹‰å­—ç¬¦ä¸æ˜¯ç»“æŸ
 			{
 				state=end_parse;
 				--i;
@@ -124,7 +162,7 @@ inline std::vector<std::string>unpacking_list(const std::string&serialized)     
 		{
 			if(it=='}'||it=='{')
 				nested_struct+=(it=='}'?-1:1);
-			if(nested_struct==0) //½âÎöÍê±Ï
+			if(nested_struct==0) //è§£æå®Œæ¯•
 			{
 				state=end_parse;
 				--i;
