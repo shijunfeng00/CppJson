@@ -125,6 +125,18 @@ struct Node
 	cout<<b.x<<endl;                                                      //正常访问成员变量
 	cout<<b.y<<endl;
 	cout<<b.z<<endl;
+/*
+output:
+4
+5
+test
+4
+5
+test
+{ "z":"test", "y":5, "x":4, "class_name":"Node" } 4
+5
+test
+*/
 ```
 ## 代码示例
 
