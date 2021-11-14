@@ -5,9 +5,10 @@
 class Config//本身是一个键值对，但在每一个类型第一次调用的时候生成运行时的一些反射相关的信息 
 {            //***field_info应该由Serializable对象负责清楚，这里不应该删除指针*** 
 public:
+	using Field=std::unordered_map<std::string,std::pair<std::string,std::size_t>>;
 	Config():field_info(nullptr){}
 	template<typename T>
-	Config(std::unordered_map<std::string,std::pair<std::string,std::size_t>>*field_info,T*object);
+	Config(Field*field_info,T*object);
 	//在第一次被调用的时候，需要去创建类型信息,field_info记录属性名称->(类型名称,地址偏移量),记录类型在后续反序列化中需要用到 
 	std::string serialized_to_string(bool first_nested_layer=false)const;      //序列化为字符串  
 	std::string&operator[](const std::string&key)const; //键值对 
@@ -19,25 +20,28 @@ public:
 	auto end();
 private:
 	mutable std::unordered_map<std::string,std::string>config;
-	std::unordered_map<std::string,std::pair<std::string,std::size_t>>*field_info;
+	Field*field_info;
 	std::size_t class_header_address;
 	std::size_t class_size;
 };
 std::ostream operator<<(std::ostream&os,Config&config);
 template<typename T>
-Config::Config(std::unordered_map<std::string,std::pair<std::string,std::size_t>>*field_info,T*object): //在第一次被调用的时候，需要去创建类型信息 
-	field_info(field_info),                                                                             //为后面的反序列化做准备 
+Config::Config(Config::Field*field_info,T*object): //在第一次被调用的时候，需要去创建类型信息 
+	field_info(field_info),                                                                           //为后面的反序列化做准备 
 	class_header_address((std::size_t)(object)),                                                        
 	class_size(sizeof(T)){}
 void Config::update(const std::initializer_list<ConfigPair>&pairs)//添加变量对,config.update({{"namea",this->name1},{"name2",this->name2}});
 {
 	for(auto&it:pairs)
 	{
-		config[it.key]=it.value;
-		if(field_info!=nullptr)                                                 //只被创建一次
+		if(it.is_field)//如果不是属性，而是成员函数，不用参与序列化过程
 		{
-			(*field_info)[it.key].first=it.type;                                //类型
-			(*field_info)[it.key].second=it.address-this->class_header_address; //地址偏移量，用来访问成员变量 
+			config[it.key]=it.value;
+			if(field_info!=nullptr)                                                 //只被创建一次
+			{
+				(*field_info)[it.key].first=it.type;                                //类型
+				(*field_info)[it.key].second=it.address-this->class_header_address; //地址偏移量，用来访问成员变量 
+			}
 		}
 	}
 }
