@@ -1,4 +1,4 @@
-//对于派生类的序列化与反序列化
+//瀵逛簬娲剧敓绫荤殑搴忓垪鍖栦笌鍙嶅簭鍒楀寲
 #include"lang/serializable.h"
 #include"iostream"
 using namespace std;
