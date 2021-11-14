@@ -14,21 +14,39 @@ struct ConfigPair
 {
 	template<typename T>
 	ConfigPair(const std::string&name,const T&object);
-	std::string key;    //成员变量名称，与声明的名称对应 
+	std::string key;    //成员变量名称，与声明的名称对应
 	std::string value;  //成员函数的值转化为字符串的结果(如果是基本类型，则直接转化为字符串，否则为嵌套字典结构) 
 	std::string type;   //类型,GET_TYPE_NAME(T),相当于记录下类型了，反序列化会用到 
 	std::size_t address;//地址，后面将用来计算成员变量地址偏移量，反序列化的时候通过(void*)(对象地址+偏移量)来访问成员变量 
+	bool is_field;      //记录name对应的变量属性还是成员函数指针
+	static std::unordered_map<std::string,std::function<void(void*,const std::string&)>>from_config_string; //从字符串中还原数据
+	static std::unordered_map<std::string,std::unordered_map<std::string,void(EmptyClass::*)(void*)>>from_classmethod_string;
 	template<typename Object>
 	static std::string get_config_string(const Object&object);
-	static std::unordered_map<std::string,std::function<void(void*,const std::string&)>>from_config_string; //从字符串中还原数据
+	template<typename ClassType,typename ReturnType,typename...Args>
+	void get_classmethod_string(ReturnType(ClassType::*method)(Args...args));
 };
 std::unordered_map<std::string,std::function<void(void*,const std::string&)>>ConfigPair::from_config_string; //从字符串中还原数据
+std::unordered_map<std::string,std::unordered_map<std::string,void(EmptyClass::*)(void*)>>ConfigPair::from_classmethod_string;
+//从字符串还原成员函数指针
+//不过这将会在Reflectable::get_method中进一步进行类型转换，还原会原来的指针，这里为了存储，被强制类型转换了。
 template<typename T>
 ConfigPair::ConfigPair(const std::string&name,const T&object):
 	key(name),
-	value(ConfigPair::get_config_string<T>(object)),
 	type(GET_TYPE_NAME(T)),
-	address((std::size_t)&object){}
+	address((std::size_t)&object),
+	is_field(!IsClassMethodType<T>::value)
+	{
+		if constexpr(IsClassMethodType<T>::value)
+			get_classmethod_string(object);
+		else
+			value=get_config_string<T>(object);
+	}
+template<typename ClassType,typename ReturnType,typename...Args>
+void ConfigPair::get_classmethod_string(ReturnType(ClassType::*method)(Args...args))
+{
+		from_classmethod_string[GET_TYPE_NAME(ClassType)][this->key]=reinterpret_cast<void(EmptyClass::*)(void*)>(method);
+}
 template<typename Object>
 std::string ConfigPair::get_config_string(const Object&field)
 {
@@ -195,6 +213,10 @@ std::string ConfigPair::get_config_string(const Object&field)
 				from_config_string[type_name]((void*)((std::size_t)field+sizeof(element_type)*i),values[i]);
 		};
 		return oss.str();
+	}
+	else if constexpr(IsClassMethodType<Object>::value) //成员函数,不会进行序列化
+	{
+		return "<classmethod>";
 	}
 	return "<not serializable object>";
 }
