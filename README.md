@@ -81,6 +81,14 @@ struct Node
 	int x;
 	float y;
 	std::string z;
+	int add(int x,int y)
+	{
+		return x+y;
+	}
+	std::string getName()
+	{
+		return z;
+	}
 };
 ```
 现在我想要这个类支持反射、序列化和反序列化
@@ -93,7 +101,9 @@ struct Node
 		config.update({
 			{"x",x},
 			{"y",y},
-			{"z",z}
+			{"z",z},
+			{"add",add},
+			{"getName",getName}
 		});
 		return config;
 	}
@@ -103,28 +113,34 @@ struct Node
 
 完成简单注册后，然后就可以使用如下方法支持属性的反射，序列化，反序列化
 ```cpp
+int main()
+{
+	Serializable::Regist<Node>();
 	void*object=Reflectable::get_instance("Node");                        //创建实例
-	Reflectable::set_field<int>(object,"Node","x",4);                     //通过反射修改值
+	/*属性值反射*/
+	Reflectable::set_field<int>(object,"Node","x",4);                     //通过字符串名称修改成员变量
 	Reflectable::set_field<float>(object,"Node","y",5);
 	Reflectable::set_field<std::string>(object,"Node","z","test");
-	
-	cout<<Reflectable::get_field<int>(object,"Node","x")<<endl;           //通过反射得到值
+	cout<<Reflectable::get_field<int>(object,"Node","x")<<endl;           //通过字符串名称得到值
 	cout<<Reflectable::get_field<float>(object,"Node","y")<<endl;
 	cout<<Reflectable::get_field<std::string>(object,"Node","z")<<endl;
-	
+	/*正常访问*/
 	cout<<(*(Node*)object).x<<endl;                                       //正常访问成员变量
 	cout<<(*(Node*)object).y<<endl;
 	cout<<(*(Node*)object).z<<endl;
+	/*序列化与反序列化*/
 	
 	std::string json=Serializable::dumps(*(Node*)object);                 //序列化
-	
-	cout<<json;
-	
+	cout<<json<<endl;
 	Node b=Serializable::loads<Node>(json);                               //反序列化
-	
+	/*正常访问*/
 	cout<<b.x<<endl;                                                      //正常访问成员变量
 	cout<<b.y<<endl;
 	cout<<b.z<<endl;
+	/*成员函数反射*/
+	cout<<Reflectable::get_method<int>(b,"add",5,6)<<endl;                //通过字符串名称访问成员函数
+	cout<<Reflectable::get_method<string>(b,"getName")<<endl;
+}
 /*
 output:
 4
@@ -135,6 +151,8 @@ test
 test
 { "z":"test", "y":5, "x":4, "class_name":"Node" } 4
 5
+test
+11
 test
 */
 ```
