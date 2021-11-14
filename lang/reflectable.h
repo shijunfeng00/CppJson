@@ -23,8 +23,9 @@ public:
 	static FieldType get_field(ClassType&object,std::string field_name); 
 
 	static std::string get_field_type(std::string class_name,std::string field_name); 
-	
+	template<typename ClassType>
 	static std::vector<std::string>get_field_names();
+	template<typename ClassType>
 	static std::vector<std::string>get_method_names();
 	
 	template<typename ReturnType,typename ObjectType,typename...Args>
@@ -52,13 +53,13 @@ std::unordered_map<std::string,std::function<void*(void)>>Reflectable::default_c
 std::unordered_map<std::string,std::function<void(void*)>>Reflectable::default_deconstructors;
 std::unordered_map<std::string,std::unordered_map<std::string,std::pair<std::string,std::size_t>>>Reflectable::field;
 std::unordered_map<std::string,std::unordered_map<std::string,void(EmptyClass::*)(void*)>>&Reflectable::method=ConfigPair::from_classmethod_string;
-
+template<typename ClassType>
 std::vector<std::string>Reflectable::get_field_names()
 {
-	static std::vector<std::string>names=[&]()->std::vector<std::string>
-	{
+	static std::vector<std::string>names=[&]()->std::vector<std::string> //这样的话就只会被求值一次.
+	{                                                                    //考虑到C++的类的属性和方法并不能运行时动态改变
 		std::vector<std::string>names;
-		for(auto&it:field)
+		for(auto&it:field[GET_TYPE_NAME(ClassType)])
 		{
 			names.push_back(it.first);
 		}
@@ -66,12 +67,13 @@ std::vector<std::string>Reflectable::get_field_names()
 	}();		
 	return names;
 }
+template<typename ClassType>
 std::vector<std::string>Reflectable::get_method_names()
 {
 	static std::vector<std::string>names=[&]()->std::vector<std::string>
 	{
 		std::vector<std::string>names;
-		for(auto&it:method)
+		for(auto&it:method[GET_TYPE_NAME(ClassType)])
 		{
 			names.push_back(it.first);
 		}
