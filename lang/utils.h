@@ -4,6 +4,7 @@
 #include<string>
 #include<tuple>
 #include<utility>
+struct EmptyClass{}; //在Reflectanle::get_method与Reflectable::classmethod_wrapper中有使用，用于类型转换的"中介"
 template<typename T>
 struct HasCustomSerializeMethod;
 //是否有自定义的序列化与反序列化成员函数
@@ -22,6 +23,9 @@ struct IsTupleOrPair;
 template<typename Object>
 struct IsArrayType;	
 //是否是C++的原生数组,int a[15]，不过IsArrayType<std::array<int,15>>::value=0,这个会被检测为tuple。但是似乎没什么影响，凑合着用了
+template<typename Method>
+struct IsClassMethodType;
+//是否是成员函数
 template <typename T, size_t N>
 inline constexpr size_t GetArrayLength(const T(&)[N]);
 //编译期获得数组长度
@@ -92,6 +96,19 @@ struct IsArrayType
 	static constexpr auto check(...)->std::false_type;
 	static constexpr int value=std::is_same<decltype(check<Object>(0)),std::true_type>::value;
 };
+
+template<typename Method>
+struct IsClassMethodType
+{
+	template<typename ClassType,typename ReturnType,typename...Args>
+	static constexpr ReturnType match(ReturnType(ClassType::*method)(Args...args));
+	template<typename T>
+	static constexpr auto check(int)->decltype(match(std::declval<T>()),std::true_type());
+	template<typename T>
+	static constexpr std::false_type check(...);
+	static constexpr int value=std::is_same<decltype(check<Method>(0)),std::true_type>::value;
+};
+
 
 template <typename T, size_t N>
 inline constexpr size_t GetArrayLength(const T(&)[N])
