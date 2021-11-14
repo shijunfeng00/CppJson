@@ -28,7 +28,7 @@ struct Node
 		return z;
 	}
 };
-int main()
+int main() 
 {
 	Serializable::Regist<Node>();
 	void*object=Reflectable::get_instance("Node");                        //创建实例
