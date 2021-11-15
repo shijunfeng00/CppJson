@@ -117,17 +117,17 @@ int main()
 {
 	Serializable::Regist<Node>();
 	void*object=Reflectable::get_instance("Node");                        //创建实例
-	/*属性值反射*/
+
 	Reflectable::set_field<int>(object,"Node","x",4);                     //通过字符串名称修改成员变量
 	Reflectable::set_field<float>(object,"Node","y",5);
 	Reflectable::set_field<std::string>(object,"Node","z","test");
-	cout<<Reflectable::get_field<int>(object,"Node","x")<<endl;           //通过字符串名称得到值
-	cout<<Reflectable::get_field<float>(object,"Node","y")<<endl;
-	cout<<Reflectable::get_field<std::string>(object,"Node","z")<<endl;
-	/*正常访问*/
-	cout<<(*(Node*)object).x<<endl;                                       //正常访问成员变量
-	cout<<(*(Node*)object).y<<endl;
-	cout<<(*(Node*)object).z<<endl;
+	int field_x=Reflectable::get_field<int>(object,"Node","x");           //通过字符串名称得到值
+	float field_y=Reflectable::get_field<float>(object,"Node","y");
+	string field_z=Reflectable::get_field<string>(object,"Node","z");
+	
+	cout<<field_x<<" "<<(*(Node*)object).x<<endl;                         //正常访问成员变量,对比结果
+	cout<<field_y<<" "<<(*(Node*)object).y<<endl;
+	cout<<field_z<<" "<<(*(Node*)object).z<<endl;
 	/*序列化与反序列化*/
 	
 	std::string json=Serializable::dumps(*(Node*)object);                 //序列化
@@ -156,8 +156,12 @@ test
 test
 */
 ```
-## 代码示例
-(以下代码主要是针对于序列化与反序列化)
+## 序列化、反序列化代码示例
+序列化，反序列化关键方法只有两个
+```Serializable::dumps```和```Serializable::loads<T>```
+分别对应序列化与反序列化，其中反序列化需要显式的给出被反序列化的对象类型
+如果不给的话将会返回一个```void*```指针，如果给了参数，会返回一个引用
+如果不想调用额外的复制构造函数，可以使用```auto&object=Serializable::loads<T>(json_string)```
 ### 示例代码1：
 ```cpp
 #include"lang/serializable.h"
@@ -394,6 +398,173 @@ I AM OK
 1,2,3,4,
 5,6,7,8,
 2021 shijunfeng00
+*/
+```
+##反射代码示例
+反射相对于序列化和反序列化会多一些细节出来
+如果只需要反射,可以只用```#include"lang/reflectable.h"```
+以及对应的```Reflectable::Regist<T>()```和```Config config=Reflectable::get_config(this)```
+这样的话就只有反射没有序列化/反序列化的功能
+
+###代码示例4：打印属性名称和方法名称
+```cpp
+#include"lang/reflectable.h"
+#include<iostream>
+#include<vector>
+using namespace std;
+struct Node
+{
+	int x=1;
+	float y=5;
+	std::string z="sjf";
+	int add(int x,int y)
+	{
+		return x+y;
+	}
+	std::string getName()
+	{
+		return z;
+	}
+	Config get_config()const
+	{
+		Config config=Reflectable::get_config(this);
+		config.update({
+			{"x",x},
+			{"y",y},
+			{"z",z},
+			{"add",add},
+			{"getName",getName}
+		});
+		return config;
+	}
+};
+int main()
+{
+	Reflectable::Regist<Node>();
+	Node a;
+	cout<<"fields:\n";
+	for(auto&it:Reflectable::get_field_names<Node>())
+		cout<<"name:"<<it<<"	type:"<<Reflectable::get_field_type("Node",it)<<endl;  //打印属性名称
+	cout<<"methods:\n";
+	for(auto&it:Reflectable::get_method_names<Node>())                                     //打印方法名称
+		cout<<"name:"<<it<<endl;
+}
+```
+代码中使用```Node*object=*(Node*)Reflectable::get_instance("Node")```来得到一个Node对象
+使用```Reflectable::get_field```来获得属性，对于private属性也能正常访问
+
+* 对于有类型的对象，比如上文的```Node a```，可以采用```int&field=Reflectable::get_field<int>(a,"x");```来得到属性的引用，
+  也可以使用```void*field=Reflectable::get_field(a,"x");```来得到一个```void*```指针。
+* 对于```void*```指针表示的对象，比如```void*a=Reflectable::get_instance("Node")```得到的对象，需要给出具体类型的字符串名称，
+  即```int&field2=Reflectable::get_field<int>(a,"Node","x");```，
+  或者```void*field1=Reflectable::get_field(a,"Node","x");```
+同样代码里面也可以使用```Reflectable::set_field```来直接设置属性类型
+* 使用```Reflectable::set_field(a,"x",5);```或者```Reflectable::set_field<int>(a,"x",5);```
+可以显式给出类型，也可以由输入参数自动推断。
+* 对于```void*```类型，依然需要给出字符串名称```Reflectable::set_field<int>(a,"Node","x",5);```
+对于成员函数的反射，需要显式给出函数的返回值类型```Reflectable::get_method<string>(b,"add",5,6);```
+第一个参数是对象实例，然后是函数名称，然后是函数的参数列表
+### 示例代码4.2
+```cpp
+#include<iostream>
+#include"lang/reflectable.h"
+#include<vector>
+using namespace std;
+struct Node
+{
+	int x=1;
+	float y=5;
+	std::string z="sjf";
+	int add(int x,int y)
+	{
+		return x+y;
+	}
+	std::string getName()
+	{
+		return z;
+	}
+	Config get_config()const
+	{
+		Config config=Reflectable::get_config(this);
+		config.update({
+			{"x",x},
+			{"y",y},
+			{"z",z},
+			{"add",add},
+			{"getName",getName}
+		});
+		return config;
+	}
+};
+struct Point
+{
+	float x=0,y=0;
+	Point add(float delta)
+	{
+		Point p(*this);
+		p.x+=delta;
+		p.y+=delta;
+		return p;
+	}
+	Config get_config()const
+	{
+		Config config=Reflectable::get_config(this);
+		config.update({
+			{"x",x},
+			{"y",y},
+			{"add",add},
+		});
+		return config;
+	}
+};
+int main()
+{
+	/*构建实例*/
+	Reflectable::Regist<Node,Point>();
+	void*a=Reflectable::get_instance("Node");                        //创建实例a
+	Node b;                                                          //创建实例b
+	Point c;
+	/*属性值反射*/                    
+	Reflectable::set_field(a,"Node","x",4);                          //不显式给出类型,由第三个参数来推断
+	Reflectable::set_field<float>(a,"Node","y",5);                   
+	Reflectable::set_field<string>(a,"Node","z","test");
+	
+	int field_x=Reflectable::get_field<int>(a,"Node","x");           //通过字符串名称得到值
+	float field_y=Reflectable::get_field<float>(a,"Node","y");
+	string field_z=Reflectable::get_field<string>(a,"Node","z");
+
+	cout<<field_x<<" "<<(*(Node*)a).x<<endl;                                       //正常访问成员变量
+	cout<<field_y<<" "<<(*(Node*)a).y<<endl;
+	cout<<field_z<<" "<<(*(Node*)a).z<<endl;
+	
+	Reflectable::set_field<int>(b,string("x"),10);
+	Reflectable::set_field<float>(b,"y",15);
+	Reflectable::set_field<string>(b,"z","cpp");
+
+	field_x=Reflectable::get_field<int>(b,"x");           
+	field_y=Reflectable::get_field<float>(b,"y");
+	field_z=Reflectable::get_field<std::string>(b,"z");
+	
+	cout<<field_x<<" "<<b.x<<endl;                                       //正常访问成员变量
+	cout<<field_y<<" "<<b.y<<endl;
+	cout<<field_z<<" "<<b.z<<endl;
+	/*成员函数反射*/
+	cout<<Reflectable::get_method<int>(b,"add",6,7)<<endl;
+	cout<<Reflectable::get_method<string>(b,"getName")<<endl;
+	Point d=Reflectable::get_method<Point>(c,"add",5.f);
+	cout<<d.x<<" "<<d.y<<endl;
+}
+/*
+output:
+4 4
+5 5
+test test
+10 10
+15 15
+cpp cpp
+13
+cpp
+5 5
 */
 ```
 # 写在最后：
