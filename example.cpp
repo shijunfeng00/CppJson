@@ -1,5 +1,6 @@
-#include"lang/serializable.h"
+//#define __DEBUG_SHARED_ARRAY__
 #include<iostream>
+#include"lang/reflectable.h"
 #include<vector>
 using namespace std;
 struct Node
@@ -7,9 +8,17 @@ struct Node
 	int x=1;
 	float y=5;
 	std::string z="sjf";
+	int add(int x,int y)
+	{
+		return x+y;
+	}
+	std::string getName()
+	{
+		return z;
+	}
 	Config get_config()const
 	{
-		Config config=Serializable::get_config(this);
+		Config config=Reflectable::get_config(this);
 		config.update({
 			{"x",x},
 			{"y",y},
@@ -19,40 +28,74 @@ struct Node
 		});
 		return config;
 	}
-	int add(int x,int y)
+};
+struct Point
+{
+	float x=0,y=0;
+	Point add(float delta)
 	{
-		return x+y;
+		Point p(*this);
+		p.x+=delta;
+		p.y+=delta;
+		return p;
 	}
-	std::string getName()
+	Config get_config()const
 	{
-		return z;
+		Config config=Reflectable::get_config(this);
+		config.update({
+			{"x",x},
+			{"y",y},
+			{"add",add},
+		});
+		return config;
 	}
 };
-int main() 
+int main()
 {
-	Serializable::Regist<Node>();
-	void*object=Reflectable::get_instance("Node");                        //创建实例
-	/*属性值反射*/
-	Reflectable::set_field<int>(object,"Node","x",4);                     //通过字符串名称修改成员变量
-	Reflectable::set_field<float>(object,"Node","y",5);
-	Reflectable::set_field<std::string>(object,"Node","z","test");
-	cout<<Reflectable::get_field<int>(object,"Node","x")<<endl;           //通过字符串名称得到值
-	cout<<Reflectable::get_field<float>(object,"Node","y")<<endl;
-	cout<<Reflectable::get_field<std::string>(object,"Node","z")<<endl;
-	/*正常访问*/
-	cout<<(*(Node*)object).x<<endl;                                       //正常访问成员变量
-	cout<<(*(Node*)object).y<<endl;
-	cout<<(*(Node*)object).z<<endl;
-	/*序列化与反序列化*/
+	/*构建实例*/
+	Reflectable::Regist<Node,Point>();
+	void*a=Reflectable::get_instance("Node");                        //创建实例a
+	Node b;                                                          //创建实例b
+	Point c;
+	/*属性值反射*/                    
+	Reflectable::set_field(a,"Node","x",4);                          //不显式给出类型,由第三个参数来推断
+	Reflectable::set_field<float>(a,"Node","y",5);                   
+	Reflectable::set_field<string>(a,"Node","z","test");
 	
-	std::string json=Serializable::dumps(*(Node*)object);                 //序列化
-	cout<<json<<endl;
-	Node b=Serializable::loads<Node>(json);                               //反序列化
-	/*正常访问*/
-	cout<<b.x<<endl;                                                      //正常访问成员变量
-	cout<<b.y<<endl;
-	cout<<b.z<<endl;
+	int field_x=Reflectable::get_field<int>(a,"Node","x");           //通过字符串名称得到值
+	float field_y=Reflectable::get_field<float>(a,"Node","y");
+	string field_z=Reflectable::get_field<string>(a,"Node","z");
+
+	cout<<field_x<<" "<<(*(Node*)a).x<<endl;                                       //正常访问成员变量
+	cout<<field_y<<" "<<(*(Node*)a).y<<endl;
+	cout<<field_z<<" "<<(*(Node*)a).z<<endl;
+	
+	Reflectable::set_field<int>(b,string("x"),10);
+	Reflectable::set_field<float>(b,"y",15);
+	Reflectable::set_field<string>(b,"z","cpp");
+
+	field_x=Reflectable::get_field<int>(b,"x");           
+	field_y=Reflectable::get_field<float>(b,"y");
+	field_z=Reflectable::get_field<std::string>(b,"z");
+	
+	cout<<field_x<<" "<<b.x<<endl;                                       //正常访问成员变量
+	cout<<field_y<<" "<<b.y<<endl;
+	cout<<field_z<<" "<<b.z<<endl;
 	/*成员函数反射*/
-	cout<<Reflectable::get_method<int>(b,"add",5,6)<<endl;                //通过字符串名称访问成员函数
+	cout<<Reflectable::get_method<int>(b,"add",6,7)<<endl;
 	cout<<Reflectable::get_method<string>(b,"getName")<<endl;
+	Point d=Reflectable::get_method<Point>(c,"add",5.f);
+	cout<<d.x<<" "<<d.y<<endl;
 }
+/*
+output:
+4 4
+5 5
+test test
+10 10
+15 15
+cpp cpp
+13
+cpp
+5 5
+*/
