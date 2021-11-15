@@ -11,16 +11,16 @@ public:
 	template<typename T,typename ...Args>
 	struct Regist;
 	template<typename T>
-	struct Inherit;                                //暂时没考虑多继承的问题
-	template<typename T>
+	struct Inherit;                                       //如果该类是子类,使用Serializable::Inherit<Father>::get_config(this).暂时没考虑多继承的问题
+	template<typename T>                                  //未来考虑采用Serializable::Inherit<FatherA,FatherB,FatherC>::get_config(this)来接受多继承问题
 	struct Regist<T>;
 	template<typename Object>
-	static Config get_config(const Object*object); //Reflectable::get_config
+	static Config get_config(const Object*object);        //Reflectable::get_config
 	template<typename Object>
-	static std::string dumps(const Object&object); //序列化对象
+	static std::string dumps(const Object&object);        //序列化对象
 	template<typename Object=void*>
-	static auto loads(const std::string&json);     //反序列化还原对象
-	static Config decode(const std::string&serialized); 
+	static auto loads(const std::string&json);            //反序列化还原对象
+	static Config decode(const std::string&serialized);   //从字符串中还原Config对象
 	template<typename Object>                             
 	static void from_config(Object*object,Config&config); //从Config中还原原始对象
 };
@@ -42,12 +42,12 @@ void Serializable::from_config(Object*object,Config&config)
 		{
 			auto&field_name=it.first;
 			auto&value=it.second;
-			std::string&type=Reflectable::get_field_type(class_name,field_name);     //得到类型名称
-			void*field=Reflectable::get_field(object,class_name,field_name);           //得到属性地址
+			std::string type=Reflectable::get_field_type(class_name,field_name);     //得到类型名称
+			void*field=Reflectable::get_field(object,class_name,field_name);         //得到属性地址
 			if(type[type.size()-1]=='*'&&value=="null")                              //空指针
 				*(void**)field=nullptr;
 			else 
-				ConfigPair::from_config_string[type](field,value);                    //修改值
+				ConfigPair::from_config_string[type](field,value);               //递归进行反序列化
 		}
 	}
 }
@@ -56,9 +56,9 @@ std::string Serializable::dumps(const Object&object)
 {
 	return object.get_config().serialized_to_string();
 }
-Config Serializable::decode(const std::string&serialized) //简陋的有限状态自动机？
+Config Serializable::decode(const std::string&serialized)                    
 {
-	constexpr int init=0;                                                          //定义各种状态
+	constexpr int init=0;                                                                    //定义各种状态
 	constexpr int parse_value=1;
 	constexpr int parse_struct=2;
 	constexpr int parse_fundamental=3;
@@ -75,25 +75,25 @@ Config Serializable::decode(const std::string&serialized) //简陋的有限状�
 	for(int i=0;i<length;++i)
 	{
 		auto&it=serialized[i];
-		if(state==init)                                        //在冒号以前的字符为属性名
+		if(state==init)                                            //在冒号以前的字符为属性名
 		{
 			if(it==':')
-				state=parse_value;                             //冒号以后就是属性值对应的字符串
+				state=parse_value;                         //冒号以后就是属性值对应的字符串
 			else if(it!='\"'&&it!='{'&&it!=','&&it!=' ')       //但是得排除两边的双引号
 				key.push_back(it);
 		}
-		else if(state==parse_value) //开始解析结果
+		else if(state==parse_value)                                //开始解析结果
 		{
 			if(it=='{')                                        //如果是大括号包起来的，那就是struct对象
 			{
 				value.push_back(it);
-				nested_struct_layer++;  //{{{}}}嵌套,遇左大括号加1，又大括号-1,到0则结束
+				nested_struct_layer++;                     //{{{}}}嵌套,遇左大括号加1，又大括号-1,到0则结束
 				state=parse_struct;
 			}
-			else if(it=='[')
+			else if(it=='[')                                   //列表,"[1,2,3,4,5]"
 			{
 				value.push_back(it);
-				nested_iterable_layer++; 
+				nested_iterable_layer++;                   //可能遇到嵌套列表的情况
 				state=parse_iterable;
 			}
 			else if(it=='\"')
@@ -101,7 +101,7 @@ Config Serializable::decode(const std::string&serialized) //简陋的有限状�
 				value.push_back(it);
 				state=parse_string;
 			}
-			else if(it!=' ')                                        //否则就是基本类型
+			else if(it!=' ')                                   //否则就是基本类型
 			{
 				value.push_back(it);
 				state=parse_fundamental;
@@ -110,7 +110,7 @@ Config Serializable::decode(const std::string&serialized) //简陋的有限状�
 		else if(state==parse_string)
 		{
 			value.push_back(it);
-			if(it=='\"'&&serialized[i-1]!='\\') // \" 转义字符不是结束.
+			if(it=='\"'&&serialized[i-1]!='\\')                // \" 转义字符不是结束.
 			{
 				state=end_parse;
 				--i;
@@ -118,17 +118,17 @@ Config Serializable::decode(const std::string&serialized) //简陋的有限状�
 		}
 		else if(state==parse_fundamental) 
 		{
-			if(it==','||it=='}'||it=='\"') //遇到逗号结束,对于最后一个属性，遇到的会是大括号，对于字符串，遇到双引号
+			if(it==','||it=='}'||it=='\"')                     //遇到逗号结束,对于最后一个属性，遇到的会是大括号，对于字符串，遇到双引号
 			{
 				if(it=='\"')
-					value.push_back(it);  //双引号需要算进值本身
+					value.push_back(it);               //双引号需要算进值本身
 				state=end_parse;
 				--i;
 				continue;
 			}
 			value.push_back(it);
 		}
-		else if(state==parse_iterable) //可能有嵌套的情况
+		else if(state==parse_iterable)                             //可能有嵌套的情况
 		{
 			if(it==']'||it=='[')
 			{
@@ -143,7 +143,7 @@ Config Serializable::decode(const std::string&serialized) //简陋的有限状�
 			}
 			value.push_back(it);
 		}
-		else if(state==parse_struct)      //遇到大括号结束
+		else if(state==parse_struct)                             //遇到大括号结束
 		{
 			if(it=='}'||it=='{')
 			{
@@ -158,7 +158,7 @@ Config Serializable::decode(const std::string&serialized) //简陋的有限状�
 			}
 			value.push_back(it);
 		}
-		else if(state==end_parse)        //解析完一个属性对应的键值对，记录到config中
+		else if(state==end_parse)                                //解析完一个属性对应的键值对，记录到config中
 		{
 			state=init;
 			config[key]=value;
@@ -172,14 +172,13 @@ Config Serializable::decode(const std::string&serialized) //简陋的有限状�
 template<typename Object=void*>
 auto Serializable::loads(const std::string&json)
 {
-	Config config=Serializable::decode(json);                //从json字符串还原Config
+	Config config=Serializable::decode(json);                                             //从json字符串还原Config
 	std::string&class_name=config["class_name"];
 	class_name.erase(                                        
 		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//去掉两边的引号
 		class_name.end());																																																																																																																																																
-	void*object=Reflectable::get_instance(class_name);        //创建实例
-	std::cout<<"I AM OK\n";
-	ConfigPair::from_config_string[class_name](object,json);//反序列化还原
+	void*object=Reflectable::get_instance(class_name);                                    //创建实例
+	ConfigPair::from_config_string[class_name](object,json);                              //反序列化还原
 	if constexpr(std::is_same<Object,void*>::value)
 		return object;
 	else
