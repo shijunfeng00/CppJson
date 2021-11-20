@@ -8,6 +8,7 @@
 #include<unordered_map>
 #include<functional>
 #include"utils.h"
+#include"exception.h"
 #define GET_TYPE_NAME(type)\
 abi::__cxa_demangle(typeid(type).name(),0,0,0)
 struct ConfigPair
@@ -218,6 +219,7 @@ std::string ConfigPair::get_config_string(const Object&field)
 	{
 		return "<classmethod>";
 	}
+	throw NotSerializableException(GET_TYPE_NAME(Object));
 	return "<not serializable object>";
 }
 #endif
