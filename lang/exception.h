@@ -37,7 +37,7 @@ public:
 class JsonDecodeUnknowException:public JsonDecodeException
 {
 public:
-	explicit JsonDecodeUnknowException(const int line,const int column);
+	explicit JsonDecodeUnknowException();
 	virtual ~JsonDecodeUnknowException();
 	virtual const char*what()const throw();
 };
@@ -54,14 +54,12 @@ const char*NotSerializableException::what()const throw()
 { 
 	return message.c_str();
 }
-
-
+/********************************************************************************************/
 JsonDecodeException::JsonDecodeException(const int line,const int column):
-	message("JsonDecoderException:")
+	message("JsonDecodeException:")
 	{}
 JsonDecodeException::~JsonDecodeException()throw(){}
-
-
+/********************************************************************************************/
 JsonDecodeDelimiterException::~JsonDecodeDelimiterException(){}
 const char*JsonDecodeDelimiterException::what()const throw()
 {
@@ -75,8 +73,7 @@ JsonDecodeDelimiterException::JsonDecodeDelimiterException(const int line,const 
 		oss<<"Expecting ',' delimiter: line "<<line<<" column "<<column<<".";
 		message+=oss.str();
 	}
-	
-	
+/********************************************************************************************/	
 JsonDecodeNameException::~JsonDecodeNameException(){}
 const char*JsonDecodeNameException::what()const throw()
 {
@@ -90,18 +87,18 @@ JsonDecodeNameException::JsonDecodeNameException(const int line,const int column
 		oss<<"Expecting property name enclosed in double quotes: line "<<line<<" column "<<column<<".";
 		message+=oss.str();
 	}
-	
+/********************************************************************************************/	
 JsonDecodeUnknowException::~JsonDecodeUnknowException(){}
 const char*JsonDecodeUnknowException::what()const throw()
 {
 	return this->message.c_str();
 }
 
-JsonDecodeUnknowException::JsonDecodeUnknowException(const int line,const int column):
-	JsonDecodeException(line,column)
+JsonDecodeUnknowException::JsonDecodeUnknowException():
+	JsonDecodeException(0,0)
 	{
 		std::ostringstream oss;
-		oss<<"Expecting property name enclosed in double quotes: line "<<line<<" column "<<column<<".";
+		oss<<"An unknow error occurred in decoding Json data.";
 		message+=oss.str();
 	}
 #endif
