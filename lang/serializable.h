@@ -4,6 +4,7 @@
 #include<functional>
 #include<algorithm>
 #include"reflectable.h"
+#include"exception.h"
 class Serializable:public Reflectable
 {
 public: 
@@ -47,7 +48,7 @@ void Serializable::from_config(Object*object,Config&config)
 			if(type[type.size()-1]=='*'&&value=="null")                              //空指针
 				*(void**)field=nullptr;
 			else 
-				ConfigPair::from_config_string[type](field,value);               //递归进行反序列化
+				ConfigPair::from_config_string[type](field,value);                   //递归进行反序列化
 		}
 	}
 }
@@ -58,7 +59,7 @@ std::string Serializable::dumps(const Object&object)
 }
 Config Serializable::decode(const std::string&serialized)                    
 {
-	constexpr int init=0;                                                                    //定义各种状态
+	constexpr int init=0;                                                          //定义各种状态
 	constexpr int parse_value=1;
 	constexpr int parse_struct=2;
 	constexpr int parse_fundamental=3;
@@ -75,25 +76,25 @@ Config Serializable::decode(const std::string&serialized)
 	for(int i=0;i<length;++i)
 	{
 		auto&it=serialized[i];
-		if(state==init)                                            //在冒号以前的字符为属性名
+		if(state==init)                                        //在冒号以前的字符为属性名
 		{
 			if(it==':')
-				state=parse_value;                         //冒号以后就是属性值对应的字符串
+				state=parse_value;                             //冒号以后就是属性值对应的字符串
 			else if(it!='\"'&&it!='{'&&it!=','&&it!=' ')       //但是得排除两边的双引号
 				key.push_back(it);
 		}
-		else if(state==parse_value)                                //开始解析结果
+		else if(state==parse_value)                            //开始解析结果
 		{
 			if(it=='{')                                        //如果是大括号包起来的，那就是struct对象
 			{
 				value.push_back(it);
-				nested_struct_layer++;                     //{{{}}}嵌套,遇左大括号加1，又大括号-1,到0则结束
+				nested_struct_layer++;                         //{{{}}}嵌套,遇左大括号加1，又大括号-1,到0则结束
 				state=parse_struct;
 			}
 			else if(it=='[')                                   //列表,"[1,2,3,4,5]"
 			{
 				value.push_back(it);
-				nested_iterable_layer++;                   //可能遇到嵌套列表的情况
+				nested_iterable_layer++;                       //可能遇到嵌套列表的情况
 				state=parse_iterable;
 			}
 			else if(it=='\"')
@@ -121,14 +122,14 @@ Config Serializable::decode(const std::string&serialized)
 			if(it==','||it=='}'||it=='\"')                     //遇到逗号结束,对于最后一个属性，遇到的会是大括号，对于字符串，遇到双引号
 			{
 				if(it=='\"')
-					value.push_back(it);               //双引号需要算进值本身
+					value.push_back(it);                       //双引号需要算进值本身
 				state=end_parse;
 				--i;
 				continue;
 			}
 			value.push_back(it);
 		}
-		else if(state==parse_iterable)                             //可能有嵌套的情况
+		else if(state==parse_iterable)                          //可能有嵌套的情况
 		{
 			if(it==']'||it=='[')
 			{
@@ -176,9 +177,17 @@ auto Serializable::loads(const std::string&json)
 	std::string&class_name=config["class_name"];
 	class_name.erase(                                        
 		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//去掉两边的引号
-		class_name.end());																																																																																																																																																
-	void*object=Reflectable::get_instance(class_name);                                    //创建实例
-	ConfigPair::from_config_string[class_name](object,json);                              //反序列化还原
+		class_name.end());
+	void*object=nullptr;
+	try
+	{																																																																																																																																															
+		object=Reflectable::get_instance(class_name);                                         //创建实例
+		ConfigPair::from_config_string[class_name](object,json);                              //反序列化还原
+	}
+	catch(std::exception&e)                                                                   //在反序列化中由于错误的字段名或者不合法的Json字串导致解码失败
+	{                                                                                         //暂时还没想好怎么去具体的检测是哪里出了什么问题，因此统一抛出一个Unknow异常.
+		throw JsonDecodeUnknowException();
+	}
 	if constexpr(std::is_same<Object,void*>::value)
 		return object;
 	else
@@ -254,7 +263,6 @@ struct Serializable::Inherit
 			if(it.first!="class_name")
 				config[it.first]=it.second;
 		return config;
-		
 	}
 };
 #endif
