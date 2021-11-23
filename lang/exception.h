@@ -2,6 +2,25 @@
 #define __SERIALIZABLE_EXCEPTION_H__
 #include<string>
 #include<sstream>
+struct NoSuchFieldException:public std::exception
+{ 
+public:
+    explicit NoSuchFieldException(const std::string&type_name,const std::string&field_name);
+    virtual ~NoSuchFieldException()throw();
+    virtual const char*what()const throw();
+protected: 
+    std::string message;
+};
+struct NoSuchMethodException:public std::exception
+{ 
+public:
+    explicit NoSuchMethodException(const std::string&type_name,const std::string&field_name);
+    virtual ~NoSuchMethodException()throw();
+    virtual const char*what()const throw();
+protected: 
+    std::string message;
+};
+
 class NotSerializableException:public std::exception 
 { 
 public:
@@ -20,17 +39,10 @@ public:
 protected:
 	std::string message;
 };
-class JsonDecodeNameException:public JsonDecodeException
-{
-public:
-	explicit JsonDecodeNameException(const int line,const int column);
-	virtual ~JsonDecodeNameException();
-	virtual const char*what()const throw();
-};
 class JsonDecodeDelimiterException:public JsonDecodeException
 {
 public:
-	explicit JsonDecodeDelimiterException(const int line,const int column);
+	explicit JsonDecodeDelimiterException(const char&ch);
 	virtual ~JsonDecodeDelimiterException();
 	virtual const char*what()const throw();
 };
@@ -42,6 +54,36 @@ public:
 	virtual const char*what()const throw();
 };
 /********************************************************************************************/
+NoSuchFieldException::NoSuchFieldException(const std::string&type_name,const std::string&field_name)
+{
+	std::ostringstream oss;
+	oss<<"Object of type <"<<type_name<<"> dose not has field named '"<<field_name<<"' .";
+	this->message=oss.str();
+}
+NoSuchFieldException::~NoSuchFieldException()
+{
+	
+}
+const char*NoSuchFieldException::what()const throw()
+{
+	return this->message.c_str();
+}
+/********************************************************************************************/
+NoSuchMethodException::NoSuchMethodException(const std::string&type_name,const std::string&field_name)
+{
+	std::ostringstream oss;
+	oss<<"Object of type <"<<type_name<<"> dose not has method named '"<<field_name<<"' .";
+	this->message=oss.str();
+}
+NoSuchMethodException::~NoSuchMethodException()
+{
+	
+}
+const char*NoSuchMethodException::what()const throw()
+{
+	return this->message.c_str();
+}
+/********************************************************************************************/
 NotSerializableException::NotSerializableException(const std::string&type_name)
 {
     std::ostringstream oss;
@@ -49,7 +91,10 @@ NotSerializableException::NotSerializableException(const std::string&type_name)
     oss<<"Object of type < "<<type_name<<" > is not JSON serializable.";
     message=oss.str();
 }
-NotSerializableException::~NotSerializableException()throw(){}
+NotSerializableException::~NotSerializableException()throw()
+{
+	
+}
 const char*NotSerializableException::what()const throw()
 { 
 	return message.c_str();
@@ -60,35 +105,27 @@ JsonDecodeException::JsonDecodeException(const int line,const int column):
 	{}
 JsonDecodeException::~JsonDecodeException()throw(){}
 /********************************************************************************************/
-JsonDecodeDelimiterException::~JsonDecodeDelimiterException(){}
+JsonDecodeDelimiterException::~JsonDecodeDelimiterException()
+{
+	
+}
 const char*JsonDecodeDelimiterException::what()const throw()
 {
 	return this->message.c_str();
 }
 
-JsonDecodeDelimiterException::JsonDecodeDelimiterException(const int line,const int column):
-	JsonDecodeException(line,column)
+JsonDecodeDelimiterException::JsonDecodeDelimiterException(const char&ch):
+	JsonDecodeException(0,0)
 	{
 		std::ostringstream oss;
-		oss<<"Expecting ',' delimiter: line "<<line<<" column "<<column<<".";
+		oss<<"Expecting '"<<ch<<"' delimiter in decoding json data.";
 		message+=oss.str();
 	}
 /********************************************************************************************/	
-JsonDecodeNameException::~JsonDecodeNameException(){}
-const char*JsonDecodeNameException::what()const throw()
+JsonDecodeUnknowException::~JsonDecodeUnknowException()
 {
-	return this->message.c_str();
+	
 }
-
-JsonDecodeNameException::JsonDecodeNameException(const int line,const int column):
-	JsonDecodeException(line,column)
-	{
-		std::ostringstream oss;
-		oss<<"Expecting property name enclosed in double quotes: line "<<line<<" column "<<column<<".";
-		message+=oss.str();
-	}
-/********************************************************************************************/	
-JsonDecodeUnknowException::~JsonDecodeUnknowException(){}
 const char*JsonDecodeUnknowException::what()const throw()
 {
 	return this->message.c_str();
