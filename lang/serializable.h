@@ -172,7 +172,6 @@ Config Serializable::decode(const std::string&serialized)
 		{
 			state=init;
 			config[key]=value;
-//			std::cout<<"<key>:"<<key<<"   <value>:"<<value<<std::endl;
 			key.clear();
 			value.clear();
 		}
@@ -286,11 +285,11 @@ struct Serializable::Inherit
 	template<typename Object>
 	static Config get_config(const Object*object)
 	{
-		Config parent_config=object->Parent::get_config();
-		auto sub_config=Reflectable::field.find(GET_TYPE_NAME(Object));
-		if(sub_config==Reflectable::field.end())
-			field[GET_TYPE_NAME(Object)]=Reflectable::field[GET_TYPE_NAME(Parent)];
-		Config config=Serializable::get_config(object);
+		Config parent_config=object->Parent::get_config();                              //得到父类的Config
+		auto sub_config=Reflectable::field.find(GET_TYPE_NAME(Object));                 //得到子类的Config
+		if(sub_config==Reflectable::field.end())                                        
+			field[GET_TYPE_NAME(Object)]=Reflectable::field[GET_TYPE_NAME(Parent)];     //子类的属性继承自父类,注意不要出现同名属性.
+		Config config=Serializable::get_config(object);                                 //同时Config也要进行合并，得到父类Config，然后添加子类Config内容
 		for(auto&it:parent_config)
 			if(it.first!="class_name")
 				config[it.first]=it.second;
