@@ -33,10 +33,15 @@ Config Serializable::get_config(const Object*object)
 template<typename Object>
 void Serializable::from_config(Object*object,Config&config)
 {
+/*
 	std::string&class_name=config["class_name"];
 	class_name.erase(                                        
 		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//去掉两边的引号
 		class_name.end());
+	std::cout<<class_name<<" "<<GET_TYPE_NAME(Object)<<std::endl;
+	std::cout<<(class_name==std::string(GET_TYPE_NAME(Object)))<<std::endl<<std::endl;
+*/
+	std::string class_name=GET_TYPE_NAME(Object);
 	for(auto&it:config)
 	{
 		if(it.first!="class_name")
@@ -173,25 +178,33 @@ Config Serializable::decode(const std::string&serialized)
 template<typename Object=void*>
 auto Serializable::loads(const std::string&json)
 {
+	static_assert(!std::is_same<Object,void*>::value,"Not implemented yet.");
+	/*
 	Config config=Serializable::decode(json);                                             //从json字符串还原Config
 	std::string&class_name=config["class_name"];
 	class_name.erase(                                        
 		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//去掉两边的引号
 		class_name.end());
+	std::cout<<class_name<<" "<<GET_TYPE_NAME(Object)<<std::endl;
+	std::cout<<(class_name==std::string(GET_TYPE_NAME(Object)))<<std::endl<<std::endl;
+	*/
+	std::string class_name=GET_TYPE_NAME(Object);
 	void*object=nullptr;
 	try
 	{																																																																																																																																															
 		object=Reflectable::get_instance(class_name);                                         //创建实例
 		ConfigPair::from_config_string[class_name](object,json);                              //反序列化还原
+		if constexpr(std::is_same<Object,void*>::value)
+			return object;
+		else
+			return std::ref(*(Object*)object);	
 	}
 	catch(std::exception&e)                                                                   //在反序列化中由于错误的字段名或者不合法的Json字串导致解码失败
-	{                                                                                         //暂时还没想好怎么去具体的检测是哪里出了什么问题，因此统一抛出一个Unknow异常.
+	{      
+		Reflectable::delete_instance(class_name,object);                                      //暂时还没想好怎么去具体的检测是哪里出了什么问题，因此统一抛出一个Unknow异常.
 		throw JsonDecodeUnknowException();
 	}
-	if constexpr(std::is_same<Object,void*>::value)
-		return object;
-	else
-		return std::ref(*(Object*)object);
+	
 }
 template<typename T,typename ...Args>
 struct Serializable::Regist
