@@ -3,6 +3,14 @@
 #include"config.h"
 #include<vector>
 #include<functional>
+struct FieldInfo:public std::unordered_map<std::string,std::unordered_map<std::string,std::pair<std::string,std::size_t>>>
+{
+	;
+};
+struct MethodInfo:public std::unordered_map<std::string,std::unordered_map<std::string,void(EmptyClass::*)(void*)>>
+{
+	;
+};
 struct Reflectable
 {
 public:
@@ -14,37 +22,38 @@ public:
 	struct Regist<T>;
 	
 	template<typename T>
-	static Config get_config(const T*object);//得到T的类型信息和名称,判断T类型的属性键值对是否建立,没有建立就建立(只建立一次) 
+	inline static Config get_config(const T*object);//得到T的类型信息和名称,判断T类型的属性键值对是否建立,没有建立就建立(只建立一次) 
 	
 	template<typename FieldType=void*>
-	static auto get_field(void*object,std::string class_name,std::string field_name); 
+	inline static auto get_field(void*object,std::string class_name,std::string field_name); 
 
 	template<typename FieldType=void*,typename ClassType>
-	static auto get_field(ClassType&object,std::string field_name); 
+	inline static auto get_field(ClassType&object,std::string field_name); 
 
-	static std::string get_field_type(std::string class_name,std::string field_name); 
+	inline static std::string get_field_type(std::string class_name,std::string field_name); 
 	template<typename ClassType>
-	static std::vector<std::string>get_field_names();
+	inline static std::vector<std::string>get_field_names();
 	template<typename ClassType>
-	static std::vector<std::string>get_method_names();
+	inline static std::vector<std::string>get_method_names();
 	
 	template<typename ReturnType,typename ObjectType,typename...Args>
-	static auto get_method(ObjectType&object,const std::string&field_name,Args&&...args);
+	inline static auto get_method(ObjectType&object,const std::string&field_name,Args&&...args);
 	//通过字符串访问成员函数,get_field<返回值类型>(对象,字段名,参数列表...);
 
 	template<typename FieldType,typename ClassType>
-	static void set_field(ClassType&object,std::string field_name,const FieldType&data);//设置属性值，因为已经有类型信息，所以不需要调用default_constructors[type]里面的函数来构造 
+	inline static void set_field(ClassType&object,std::string field_name,const FieldType&data);//设置属性值，因为已经有类型信息，所以不需要调用default_constructors[type]里面的函数来构造 
 	
-	static void set_field(void*object,std::string class_name,std::string field_name,const auto&value);
+	inline static void set_field(void*object,std::string class_name,std::string field_name,const auto&value);
 
-	static void delete_instance(std::string class_name,void*object); 
-	static void*get_instance(std::string class_name);
+	inline static void delete_instance(std::string class_name,void*object); 
+	inline static void*get_instance(std::string class_name);
 	
 	using ClassName=std::string;
 	using MethodName=std::unordered_map<std::string,void(EmptyClass::*)(void*)>;
 	using FieldName=std::unordered_map<std::string,std::pair<std::string,std::size_t>>;
 //private:	
 	static std::unordered_map<ClassName,FieldName>field;
+//	static std::unordered_map<std::pair<ClassName,FieldName>,std::pair<StringValue,Offset>,HashFunc,EqualKey>field;
 	static std::unordered_map<ClassName,std::function<void*(void)>>default_constructors;
 	static std::unordered_map<ClassName,std::function<void(void*)>>default_deconstructors;
 	static std::unordered_map<std::string,MethodName>&method;
@@ -104,7 +113,7 @@ auto Reflectable::get_field(ClassType&object,std::string field_name)
 	if constexpr(std::is_same<FieldType,void*>::value)
 		return (void*)((std::size_t)(&object)+offset);
 	else
-		return std::ref(*(FieldType*)((std::size_t)(&object)+offset));
+		return (*(FieldType*)((std::size_t)(&object)+offset));
 }
 template<typename FieldType=void*>
 auto Reflectable::get_field(void*object,std::string class_name,std::string field_name)
@@ -113,7 +122,7 @@ auto Reflectable::get_field(void*object,std::string class_name,std::string field
 	if constexpr(std::is_same<FieldType,void*>::value)
 		return (void*)((std::size_t)(object)+offset);
 	else
-		return std::ref(*(FieldType*)((std::size_t)(object)+offset));
+		return (*(FieldType*)((std::size_t)(object)+offset));
 }
 std::string Reflectable::get_field_type(std::string class_name,std::string field_name)
 {
@@ -146,7 +155,7 @@ struct Reflectable::Regist
 	Regist()
 	{
 		T object;
-		object.get_config();//必须调用get_config,才能建立类型信息,所以这里必须先调用一次Reflectable的get_config 
+		object.get_config();//必须调用get_config,才能建立类型信息,所以这里必须先调用一次Reflectable的get_config
 		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //默认构造函数 
 		{
 			return (void*)(new T());
