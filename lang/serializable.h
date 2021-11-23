@@ -87,6 +87,10 @@ Config Serializable::decode(const std::string&serialized)
 				state=parse_value;                             //冒号以后就是属性值对应的字符串
 			else if(it!='\"'&&it!='{'&&it!=','&&it!=' ')       //但是得排除两边的双引号
 				key.push_back(it);
+			if(it=='{')
+				nested_struct_layer++;
+			if(it=='[')
+				nested_iterable_layer++;
 		}
 		else if(state==parse_value)                            //开始解析结果
 		{
@@ -172,6 +176,21 @@ Config Serializable::decode(const std::string&serialized)
 			key.clear();
 			value.clear();
 		}
+	}
+	if(serialized[length-1]=='}')                               //特判最后一个字符
+		nested_struct_layer--;                                  //因为他不属于"解析struct对象"，所以}不会被计算进去.
+			
+	if(!(state==end_parse&&nested_iterable_layer==0&&nested_struct_layer==0))
+	{   //不为零说明左右括号数量不匹配，说明字符串并不是合法的Json字串
+//		std::cout<<nested_iterable_layer<<" "<<nested_struct_layer<<std::endl;
+		if(nested_iterable_layer>0)
+			throw JsonDecodeDelimiterException(']');
+		else if(nested_iterable_layer<0)
+			throw JsonDecodeDelimiterException('[');
+		if(nested_struct_layer>0)
+			throw JsonDecodeDelimiterException('}');
+		else if(nested_struct_layer<0)
+			throw JsonDecodeDelimiterException('{');
 	}
 	return config;
 }
