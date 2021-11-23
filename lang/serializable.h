@@ -9,21 +9,23 @@ class Serializable:public Reflectable
 {
 public: 
 	virtual ~Serializable(){};
+	template<typename T> //如果该类是子类,使用Serializable::Inherit<Father>::get_config(this).          
+	struct Inherit;      
 	template<typename T,typename ...Args>
-	struct Regist;
-	template<typename T>
-	struct Inherit;                                       //如果该类是子类,使用Serializable::Inherit<Father>::get_config(this).暂时没考虑多继承的问题
-	template<typename T>                                  //未来考虑采用Serializable::Inherit<FatherA,FatherB,FatherC>::get_config(this)来接受多继承问题
+	struct MultiInherit;
+	template<typename T,typename ...Args>
+	struct Regist;                      
+	template<typename T>                        
 	struct Regist<T>;
 	template<typename Object>
-	static Config get_config(const Object*object);        //Reflectable::get_config
+	inline static Config get_config(const Object*object);        //Reflectable::get_config
 	template<typename Object>
-	static std::string dumps(const Object&object);        //序列化对象
+	inline static std::string dumps(const Object&object);        //序列化对象
 	template<typename Object=void*>
-	static auto loads(const std::string&json);            //反序列化还原对象
-	static Config decode(const std::string&serialized);   //从字符串中还原Config对象
+	inline static auto loads(const std::string&json);            //反序列化还原对象
+	inline static Config decode(const std::string&serialized);   //从字符串中还原Config对象
 	template<typename Object>                             
-	static void from_config(Object*object,Config&config); //从Config中还原原始对象
+	inline static void from_config(Object*object,Config&config); //从Config中还原原始对象
 };
 template<typename Object>
 Config Serializable::get_config(const Object*object)
