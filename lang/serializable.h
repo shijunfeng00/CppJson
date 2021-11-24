@@ -21,6 +21,8 @@ public:
 	inline static Config get_config(const Object*object);        //Reflectable::get_config
 	template<typename Object>
 	inline static std::string dumps(const Object&object);        //序列化对象
+	template<typename Type>
+	inline static std::string dumps(const std::initializer_list<Type>&object);
 	template<typename Object>
 	inline static auto loads(const std::string&json);            //反序列化还原对象
 	inline static Config decode(const std::string&serialized);   //从字符串中还原Config对象
@@ -50,6 +52,11 @@ void Serializable::from_config(Object*object,Config&config)
 				ConfigPair::from_config_string[type](field,value);                   //递归进行反序列化
 		}
 	}
+}
+template<typename Type>
+std::string Serializable::dumps(const std::initializer_list<Type>&object)
+{
+	return ConfigPair::get_config_string<std::vector<Type>>(std::vector<Type>(object));
 }
 template<typename Object>
 std::string Serializable::dumps(const Object&object)
