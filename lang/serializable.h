@@ -35,14 +35,6 @@ Config Serializable::get_config(const Object*object)
 template<typename Object>
 void Serializable::from_config(Object*object,Config&config)
 {
-/*
-	std::string&class_name=config["class_name"];
-	class_name.erase(                                        
-		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//去掉两边的引号
-		class_name.end());
-	std::cout<<class_name<<" "<<GET_TYPE_NAME(Object)<<std::endl;
-	std::cout<<(class_name==std::string(GET_TYPE_NAME(Object)))<<std::endl<<std::endl;
-*/
 	std::string class_name=GET_TYPE_NAME(Object);
 	for(auto&it:config)
 	{
@@ -190,7 +182,6 @@ Config Serializable::decode(const std::string&serialized)
 			
 	if(!(state==end_parse&&nested_iterable_layer==0&&nested_struct_layer==0))
 	{   //不为零说明左右括号数量不匹配，说明字符串并不是合法的Json字串
-//		std::cout<<nested_iterable_layer<<" "<<nested_struct_layer<<std::endl;
 		if(nested_iterable_layer>0)
 			throw JsonDecodeDelimiterException(']');
 		else if(nested_iterable_layer<0)
@@ -205,19 +196,7 @@ Config Serializable::decode(const std::string&serialized)
 template<typename Object>
 auto Serializable::loads(const std::string&json)
 {
-	static_assert(!std::is_same<Object,void*>::value,"Not implemented yet.");
-	/*
-	Config config=Serializable::decode(json);                                             //从json字符串还原Config
-	std::string&class_name=config["class_name"];
-	class_name.erase(                                        
-		std::remove_if(class_name.begin(),class_name.end(),[](auto ch){return ch=='\"';}),//去掉两边的引号
-		class_name.end());
-	std::cout<<class_name<<" "<<GET_TYPE_NAME(Object)<<std::endl;
-	std::cout<<(class_name==std::string(GET_TYPE_NAME(Object)))<<std::endl<<std::endl;
-	*/
-
 	std::string class_name=GET_TYPE_NAME(Object);
-	std::cout<<class_name<<"<-name"<<std::endl;
 	if constexpr(IsSerializableType<Object>::value)
 	{
 		void*object=nullptr;
