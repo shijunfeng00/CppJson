@@ -21,7 +21,7 @@ public:
 	inline static Config get_config(const Object*object);        //Reflectable::get_config
 	template<typename Object>
 	inline static std::string dumps(const Object&object);        //序列化对象
-	template<typename Object=void*>
+	template<typename Object>
 	inline static auto loads(const std::string&json);            //反序列化还原对象
 	inline static Config decode(const std::string&serialized);   //从字符串中还原Config对象
 	template<typename Object>                             
@@ -62,8 +62,15 @@ void Serializable::from_config(Object*object,Config&config)
 template<typename Object>
 std::string Serializable::dumps(const Object&object)
 {
-	return object.get_config().serialized_to_string();
-}
+	if constexpr(IsSerializableType<Object>::value)   //实现了Config get_config()const的结构体,类
+	{                                                 //如果没有实现get_config,会抛出NotSerializableException异常
+		return object.get_config().serialized_to_string();
+	}
+	else
+	{
+		return ConfigPair::get_config_string(object); //int,std::vector等可以进行序列化的类型
+	}                                                 //如果是其他不可序列化的类型，同样会抛出NotSerializableException异常
+}	
 Config Serializable::decode(const std::string&serialized)                    
 {
 	constexpr int init=0;                                                          //定义各种状态
@@ -195,7 +202,7 @@ Config Serializable::decode(const std::string&serialized)
 	}
 	return config;
 }
-template<typename Object=void*>
+template<typename Object>
 auto Serializable::loads(const std::string&json)
 {
 	static_assert(!std::is_same<Object,void*>::value,"Not implemented yet.");
@@ -208,23 +215,30 @@ auto Serializable::loads(const std::string&json)
 	std::cout<<class_name<<" "<<GET_TYPE_NAME(Object)<<std::endl;
 	std::cout<<(class_name==std::string(GET_TYPE_NAME(Object)))<<std::endl<<std::endl;
 	*/
+
 	std::string class_name=GET_TYPE_NAME(Object);
-	void*object=nullptr;
-	try
-	{																																																																																																																																															
-		object=Reflectable::get_instance(class_name);                                         //创建实例
-		ConfigPair::from_config_string[class_name](object,json);                              //反序列化还原
-		if constexpr(std::is_same<Object,void*>::value)
-			return object;
-		else
+	std::cout<<class_name<<"<-name"<<std::endl;
+	if constexpr(IsSerializableType<Object>::value)
+	{
+		void*object=nullptr;
+		try
+		{																																																																																																																																															
+			object=Reflectable::get_instance(class_name);                                         //创建实例
+			ConfigPair::from_config_string[class_name](object,json);                              //反序列化还原
 			return std::ref(*(Object*)object);	
+		}
+		catch(std::exception&e)                                                                   //在反序列化中由于错误的字段名或者不合法的Json字串导致解码失败
+		{      
+			Reflectable::delete_instance(class_name,object);                                      //暂时还没想好怎么去具体的检测是哪里出了什么问题，因此统一抛出一个Unknow异常.
+			throw JsonDecodeUnknowException();
+		}	
 	}
-	catch(std::exception&e)                                                                   //在反序列化中由于错误的字段名或者不合法的Json字串导致解码失败
-	{      
-		Reflectable::delete_instance(class_name,object);                                      //暂时还没想好怎么去具体的检测是哪里出了什么问题，因此统一抛出一个Unknow异常.
-		throw JsonDecodeUnknowException();
+	else
+	{
+		Object*object=new Object();
+		ConfigPair::from_config_string[class_name]((void*)object,json);
+		return std::ref(*(Object*)object);
 	}
-	
 }
 template<typename T,typename ...Args>
 struct Serializable::Regist
