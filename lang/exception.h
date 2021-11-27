@@ -33,7 +33,7 @@ protected:
 class JsonDecodeException:public std::exception
 {
 public:
-	explicit JsonDecodeException(const int line,const int column);
+	explicit JsonDecodeException();
 	virtual ~JsonDecodeException() throw();
 	virtual const char*what()const throw()=0;
 protected:
@@ -49,7 +49,7 @@ public:
 class JsonDecodeUnknowException:public JsonDecodeException
 {
 public:
-	explicit JsonDecodeUnknowException();
+	explicit JsonDecodeUnknowException(const int line,const char*file);
 	virtual ~JsonDecodeUnknowException();
 	virtual const char*what()const throw();
 };
@@ -100,7 +100,7 @@ const char*NotSerializableException::what()const throw()
 	return message.c_str();
 }
 /********************************************************************************************/
-JsonDecodeException::JsonDecodeException(const int line,const int column):
+JsonDecodeException::JsonDecodeException():
 	message("JsonDecodeException:")
 	{}
 JsonDecodeException::~JsonDecodeException()throw(){}
@@ -115,7 +115,7 @@ const char*JsonDecodeDelimiterException::what()const throw()
 }
 
 JsonDecodeDelimiterException::JsonDecodeDelimiterException(const char&ch):
-	JsonDecodeException(0,0)
+	JsonDecodeException()
 	{
 		std::ostringstream oss;
 		oss<<"Expecting '"<<ch<<"' delimiter in decoding json data.";
@@ -131,11 +131,11 @@ const char*JsonDecodeUnknowException::what()const throw()
 	return this->message.c_str();
 }
 
-JsonDecodeUnknowException::JsonDecodeUnknowException():
-	JsonDecodeException(0,0)
+JsonDecodeUnknowException::JsonDecodeUnknowException(const int line,const char*file):
+	JsonDecodeException()
 	{
 		std::ostringstream oss;
-		oss<<"An unknow error occurred in decoding Json data.";
+		oss<<"An unknow error occurred in decoding json data.(file:"<<file<<",line:"<<line;
 		message+=oss.str();
 	}
 #endif
