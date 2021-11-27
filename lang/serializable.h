@@ -25,7 +25,7 @@ public:
 	inline static std::string dumps(const std::initializer_list<Type>&object);
 	template<typename Object>
 	inline static auto loads(const std::string&json);            //反序列化还原对象
-	inline static Config decode(const std::string&serialized);   //从字符串中还原Config对象
+	inline static Config decode(const std::string&json);   //从字符串中还原Config对象
 	template<typename Object>                             
 	inline static void from_config(Object*object,Config&config); //从Config中还原原始对象
 };
@@ -70,7 +70,7 @@ std::string Serializable::dumps(const Object&object)
 		return ConfigPair::get_config_string(object); //int,std::vector等可以进行序列化的类型
 	}                                                 //如果是其他不可序列化的类型，同样会抛出NotSerializableException异常
 }	
-Config Serializable::decode(const std::string&serialized)                    
+Config Serializable::decode(const std::string&json)                    
 {
 	constexpr int init=0;                                                          //定义各种状态
 	constexpr int parse_value=1;
@@ -84,6 +84,20 @@ Config Serializable::decode(const std::string&serialized)
 	int nested_struct_layer=0;
 	int nested_iterable_layer=0;
 	int state=init;
+	std::string serialized=[&]()->std::string //删掉转义字符和空格
+	{
+		bool is_in_string=false;
+		std::string strip;
+		for(auto&it:json)
+		{
+			if(it=='\"')
+				is_in_string^=1;
+			if(!is_in_string&&(it=='\n'||it=='\t'||it==' '))
+				continue;
+			strip.push_back(it);
+		}
+		return strip;
+	}();
 	int length=serialized.size();
 	Config config;
 	for(int i=0;i<length;++i)
@@ -91,14 +105,14 @@ Config Serializable::decode(const std::string&serialized)
 		auto&it=serialized[i];
 		if(state==init)                                        //在冒号以前的字符为属性名
 		{
-			if(it==':')
-				state=parse_value;                             //冒号以后就是属性值对应的字符串
-			else if(it!='\"'&&it!='{'&&it!=','&&it!=' ')       //但是得排除两边的双引号
-				key.push_back(it);
 			if(it=='{')
 				nested_struct_layer++;
 			if(it=='[')
 				nested_iterable_layer++;
+			if(it==':')
+				state=parse_value;                             //冒号以后就是属性值对应的字符串
+			else if(it!='\"'&&it!='{'&&it!=','&&it!=' ')       //但是得排除两边的双引号
+				key.push_back(it);
 		}
 		else if(state==parse_value)                            //开始解析结果
 		{
@@ -187,8 +201,9 @@ Config Serializable::decode(const std::string&serialized)
 	if(serialized[length-1]=='}')                               //特判最后一个字符
 		nested_struct_layer--;                                  //因为他不属于"解析struct对象"，所以}不会被计算进去.
 			
-	if(!(state==end_parse&&nested_iterable_layer==0&&nested_struct_layer==0))
-	{   //不为零说明左右括号数量不匹配，说明字符串并不是合法的Json字串
+	if(!(state==end_parse&&nested_iterable_layer==0&&nested_struct_layer==0)) //不为零说明左右括号数量不匹配，说明字符串并不是合法的Json字串
+	{ 
+	//	std::cout<<nested_iterable_layer<<" "<<nested_struct_layer<<std::endl;
 		if(nested_iterable_layer>0)
 			throw JsonDecodeDelimiterException(']');
 		else if(nested_iterable_layer<0)
@@ -213,16 +228,39 @@ auto Serializable::loads(const std::string&json)
 			ConfigPair::from_config_string[class_name](object,json);                              //反序列化还原
 			return std::ref(*(Object*)object);	
 		}
+		catch(JsonDecodeDelimiterException&e)
+		{
+			throw e;
+		}
+		catch(JsonDecodeUnknowException&e)
+		{
+			throw e;
+		}
 		catch(std::exception&e)                                                                   //在反序列化中由于错误的字段名或者不合法的Json字串导致解码失败
 		{      
 			Reflectable::delete_instance(class_name,object);                                      //暂时还没想好怎么去具体的检测是哪里出了什么问题，因此统一抛出一个Unknow异常.
-			throw JsonDecodeUnknowException();
+			throw JsonDecodeUnknowException(__LINE__,__FILE__);
 		}	
 	}
 	else
 	{
 		Object*object=new Object();
-		ConfigPair::from_config_string[class_name]((void*)object,json);
+		try
+		{
+			ConfigPair::from_config_string[class_name]((void*)object,json);
+		}
+		catch(JsonDecodeDelimiterException&e)
+		{
+			throw e;
+		}
+		catch(JsonDecodeUnknowException&e)
+		{
+			throw e;
+		}
+		catch(std::exception&e)
+		{
+			throw JsonDecodeUnknowException(__LINE__,__FILE__);
+		}
 		return std::ref(*(Object*)object);
 	}
 }
