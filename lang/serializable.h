@@ -196,7 +196,6 @@ Config Serializable::decode(const std::string&json)
 	}
 	if(!(state==end_parse&&nested_iterable_layer==0&&nested_struct_layer==0)) //不为零说明左右括号数量不匹配，说明字符串并不是合法的Json字串
 	{ 
-		std::cout<<nested_iterable_layer<<" "<<nested_struct_layer<<std::endl;
 		if(nested_iterable_layer>0)
 			throw JsonDecodeDelimiterException(']');
 		else if(nested_iterable_layer<0)
