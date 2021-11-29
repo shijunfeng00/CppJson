@@ -61,15 +61,11 @@ std::string Serializable::dumps(const std::initializer_list<Type>&object)
 template<typename Object>
 std::string Serializable::dumps(const Object&object)
 {
-	if constexpr(IsSerializableType<Object>::value)   //实现了Config get_config()const的结构体,类
-	{                                                 //如果没有实现get_config,会抛出NotSerializableException异常
-		return object.get_config().serialized_to_string();
-	}
+	if constexpr(IsSerializableType<Object>::value)        //实现了Config get_config()const的结构体,类                                
+		return object.get_config().serialized_to_string(); //如果没有实现get_config,会抛出NotSerializableException异常
 	else
-	{
 		return ConfigPair::get_config_string(object); //int,std::vector等可以进行序列化的类型
-	}                                                 //如果是其他不可序列化的类型，同样会抛出NotSerializableException异常
-}	
+}                                                     //如果是其他不可序列化的类型，同样会抛出NotSerializableException异常
 Config Serializable::decode(const std::string&json)                    
 {
 	constexpr int init=0;                                                          //定义各种状态
@@ -266,24 +262,10 @@ struct Serializable::Regist
 {
 	Regist()
 	{
-		using Tptr=T*;
 		ConfigPair::from_config_string[GET_TYPE_NAME(T)]=[](void*object,const std::string&value)->void    //实质还是调用from_config进行递归.
 		{
 			Config config=Serializable::decode(value);
 			Serializable::from_config((T*)object,config);
-		};
-		ConfigPair::from_config_string[GET_TYPE_NAME(Tptr)]=[](void*object,const std::string&value)->void //对应的指针
-		{
-			Config config=Serializable::decode(value);
-			if(value=="null")
-			{
-				(*(Tptr*)object)=nullptr;
-			}
-			else
-			{
-		   		(*(Tptr*)object)=(T*)Reflectable::get_instance(GET_TYPE_NAME(T));
-				Serializable::from_config((*(Tptr*)object),config);
-			}
 		};
 		Reflectable::Regist<T>();
 		Serializable::Regist<Args...>();
@@ -294,24 +276,10 @@ struct Serializable::Regist<T>
 {
 	Regist()
 	{
-		using Tptr=T*;
 		ConfigPair::from_config_string[GET_TYPE_NAME(T)]=[](void*object,const std::string&value)->void   //实质还是调用from_config进行递归.
 		{
 			Config config=Serializable::decode(value);
 			Serializable::from_config((T*)object,config);
-		};
-		ConfigPair::from_config_string[GET_TYPE_NAME(Tptr)]=[](void*object,const std::string&value)->void //对应的指针
-		{
-			Config config=Serializable::decode(value);
-			if(value=="null")
-			{
-				(*(Tptr*)object)=nullptr;
-			}
-			else
-			{
-		   		(*(Tptr*)object)=(T*)Reflectable::get_instance(GET_TYPE_NAME(T));
-				Serializable::from_config((*(Tptr*)object),config);
-			}
 		};
 		Reflectable::Regist<T>();
 	}
