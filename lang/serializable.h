@@ -25,7 +25,7 @@ public:
 	inline static std::string dumps(const std::initializer_list<Type>&object);
 	template<typename Object>
 	inline static auto loads(const std::string&json);            //反序列化还原对象
-	inline static Config decode(const std::string&json);   //从字符串中还原Config对象
+	inline static Config decode(const std::string&json);   //从字符串中还原Config对象(仅自定义struct/class对象,因为这个只负责解析字典dict)
 	template<typename Object>                             
 	inline static void from_config(Object*object,Config&config); //从Config中还原原始对象
 };
@@ -100,15 +100,15 @@ Config Serializable::decode(const std::string&json)
 	}();
 	int length=serialized.size();
 	Config config;
+	if(serialized[0]!='{')
+		throw JsonDecodeDelimiterException('{');
+	if(serialized[length-1]!='}')
+		throw JsonDecodeDelimiterException('}');
 	for(int i=0;i<length;++i)
 	{
 		auto&it=serialized[i];
 		if(state==init)                                        //在冒号以前的字符为属性名
 		{
-			if(it=='{')
-				nested_struct_layer++;
-			if(it=='[')
-				nested_iterable_layer++;
 			if(it==':')
 				state=parse_value;                             //冒号以后就是属性值对应的字符串
 			else if(it!='\"'&&it!='{'&&it!=','&&it!=' ')       //但是得排除两边的双引号
@@ -198,12 +198,9 @@ Config Serializable::decode(const std::string&json)
 			value.clear();
 		}
 	}
-	if(serialized[length-1]=='}')                               //特判最后一个字符
-		nested_struct_layer--;                                  //因为他不属于"解析struct对象"，所以}不会被计算进去.
-			
 	if(!(state==end_parse&&nested_iterable_layer==0&&nested_struct_layer==0)) //不为零说明左右括号数量不匹配，说明字符串并不是合法的Json字串
 	{ 
-	//	std::cout<<nested_iterable_layer<<" "<<nested_struct_layer<<std::endl;
+		std::cout<<nested_iterable_layer<<" "<<nested_struct_layer<<std::endl;
 		if(nested_iterable_layer>0)
 			throw JsonDecodeDelimiterException(']');
 		else if(nested_iterable_layer<0)
