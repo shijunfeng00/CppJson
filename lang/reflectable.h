@@ -22,6 +22,9 @@ public:
 	struct Regist<T>;
 	
 	template<typename T>
+	struct Inherit;
+	
+	template<typename T>
 	inline static Config get_config(const T*object);//得到T的类型信息和名称,判断T类型的属性键值对是否建立,没有建立就建立(只建立一次) 
 	
 	template<typename FieldType=void*>
@@ -35,7 +38,6 @@ public:
 	inline static std::vector<std::string>get_field_names();
 	template<typename ClassType>
 	inline static std::vector<std::string>get_method_names();
-	
 	template<typename ReturnType,typename ObjectType,typename...Args>
 	inline static auto get_method(ObjectType&object,const std::string&field_name,Args&&...args);
 	//通过字符串访问成员函数,get_field<返回值类型>(对象,字段名,参数列表...);
@@ -51,9 +53,8 @@ public:
 	using ClassName=std::string;
 	using MethodName=std::unordered_map<std::string,void(EmptyClass::*)(void*)>;
 	using FieldName=std::unordered_map<std::string,std::pair<std::string,std::size_t>>;
-//private:	
+private:	
 	static std::unordered_map<ClassName,FieldName>field;
-//	static std::unordered_map<std::pair<ClassName,FieldName>,std::pair<StringValue,Offset>,HashFunc,EqualKey>field;
 	static std::unordered_map<ClassName,std::function<void*(void)>>default_constructors;
 	static std::unordered_map<ClassName,std::function<void(void*)>>default_deconstructors;
 	static std::unordered_map<std::string,MethodName>&method;
@@ -94,7 +95,7 @@ template<typename T>
 Config Reflectable::get_config(const T*object)
 {
 	std::string class_name=GET_TYPE_NAME(T);
-	Config config(&field[class_name],object);//如果不存在就创建，否则不做操作 
+	Config config(&field[class_name],object);
 	config.update({{"class_name",class_name}});
 	return config;
 }
@@ -155,7 +156,7 @@ struct Reflectable::Regist
 	Regist()
 	{
 		T object;
-		object.get_config();//必须调用get_config,才能建立类型信息,所以这里必须先调用一次Reflectable的get_config
+		static Config config=object.get_config();//必须调用get_config,才能建立类型信息,所以这里必须先调用一次Reflectable的get_config
 		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //默认构造函数 
 		{
 			return (void*)(new T());
@@ -173,7 +174,7 @@ struct Reflectable::Regist<T>
 	Regist()
 	{
 		T object;
-		object.get_config();
+		static Config config=object.get_config();
 		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //默认构造函数 
 		{
 			return (void*)(new T());
@@ -182,6 +183,19 @@ struct Reflectable::Regist<T>
 		{
 			delete ((T*)object);
 		};
+	}
+};
+template<typename Parent>
+struct Reflectable::Inherit
+{
+	template<typename Object>
+	static Config get_config(const Object*object)
+	{
+		Config parent_config=object->Parent::get_config();                              //得到父类的Config
+		auto sub_config=Reflectable::field.find(GET_TYPE_NAME(Object));                 //得到子类的Config
+		if(sub_config==Reflectable::field.end())                                        
+			field[GET_TYPE_NAME(Object)]=Reflectable::field[GET_TYPE_NAME(Parent)];     //子类的属性继承自父类,注意不要出现同名属性.
+		return parent_config;	
 	}
 };
 #endif
