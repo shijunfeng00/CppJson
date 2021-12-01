@@ -26,6 +26,10 @@ struct IsArrayType;
 template<typename Method>
 struct IsClassMethodType;
 //是否是成员函数
+struct HashFunc;
+//对于std::pair<A,B>计算哈希值
+struct EqualKey;
+//对于std::pair<A,B>对象的键值比较,哈希碰撞的比较定义,需要知道两个自定义对象是否相等
 template <typename T, size_t N>
 inline constexpr size_t GetArrayLength(const T(&)[N]);
 //编译期获得数组长度
@@ -34,7 +38,6 @@ inline std::vector<std::string>unpacking_list(const std::string&serialized);
 template<typename Object,int index=0>
 inline auto for_each_element(Object&object,auto&&callback);                 
 //遍历std::tuple,std::pair每个元素,序列化/反序列化 传入函数对象即可
-
 
 template<typename T>
 struct HasCustomSerializeMethod
@@ -108,8 +111,21 @@ struct IsClassMethodType
 	static constexpr std::false_type check(...);
 	static constexpr int value=std::is_same<decltype(check<Method>(0)),std::true_type>::value;
 };
+struct HashFunc
+{
+	template<typename T, typename U>
+	size_t operator()(const std::pair<T, U>& p) const {
+		return std::hash<T>()(p.first) ^ std::hash<U>()(p.second);
+	}
+};
 
-
+// 键值比较，哈希碰撞的比较定义，需要直到两个自定义对象是否相等
+struct EqualKey {
+	template<typename T, typename U>
+	bool operator ()(const std::pair<T, U>& p1, const std::pair<T, U>& p2) const {
+		return p1.first == p2.first && p1.second == p2.second;
+	}
+};
 template <typename T, size_t N>
 inline constexpr size_t GetArrayLength(const T(&)[N])
 {
@@ -124,13 +140,7 @@ inline auto for_each_element(Object&object,auto&&callback)                      
 }
 inline std::vector<std::string>unpacking_list(const std::string&serialized)              //列表解包,"[1,2,3,4]"->["1","2","3","4"]
 {                                                                                        //思路参考Serializable::decode
-	constexpr int init=0;
-	constexpr int parse_fundamental=1;
-	constexpr int parse_struct=2;
-	constexpr int parse_iterable=3;
-	constexpr int parse_string=4;
-	constexpr int end_parse=5;
-	int state=init;
+	enum State{init,parse_fundamental,parse_string,parse_struct,parse_iterable,end_parse}state=init;
 	std::vector<std::string>vec;
 	std::string temp;
 	int length=serialized.size();
