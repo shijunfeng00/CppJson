@@ -25,9 +25,11 @@ public:
 	inline static std::string dumps(const std::initializer_list<Type>&object);
 	template<typename Object>
 	inline static auto loads(const std::string&json);            //反序列化还原对象
-	inline static Config decode(const std::string&json);   //从字符串中还原Config对象(仅自定义struct/class对象,因为这个只负责解析字典dict)
 	template<typename Object>                             
 	inline static void from_config(Object*object,Config&config); //从Config中还原原始对象
+	
+	inline static Config decode(const std::string&json);   //从字符串中还原Config对象(仅自定义struct/class对象,因为这个只负责解析字典dict)
+	inline static Config decode_view(const std::string&json);   //为替换为std::string_view，优化内存做准备，同时得到属性子串在原字串中的下标索引
 };
 template<typename Object>
 Config Serializable::get_config(const Object*object)
@@ -68,18 +70,9 @@ std::string Serializable::dumps(const Object&object)
 }                                                     //如果是其他不可序列化的类型，同样会抛出NotSerializableException异常
 Config Serializable::decode(const std::string&json)                    
 {
-	constexpr int init=0;                                                          //定义各种状态
-	constexpr int parse_value=1;
-	constexpr int parse_struct=2;
-	constexpr int parse_fundamental=3;
-	constexpr int parse_iterable=4;
-	constexpr int parse_string=5;
-	constexpr int end_parse=6;
-	std::string key;
-	std::string value;
-	int nested_struct_layer=0;
-	int nested_iterable_layer=0;
-	int state=init;
+	enum State{init,parse_value,parse_struct,parse_fundamental,parse_iterable,parse_string,end_parse}state=init;
+	std::string key,value;
+	int nested_struct_layer=0,nested_iterable_layer=0;
 	std::string serialized=[&]()->std::string //删掉转义字符和空格
 	{
 		bool is_in_string=false;
@@ -188,6 +181,7 @@ Config Serializable::decode(const std::string&json)
 		}
 		else if(state==end_parse)                                //解析完一个属性对应的键值对，记录到config中
 		{
+//			std::cout<<"key<"<<key<<"> value<"<<value<<">"<<std::endl;
 			state=init;
 			config[key]=value;
 			key.clear();
@@ -289,10 +283,7 @@ struct Serializable::Inherit
 	template<typename Object>
 	static Config get_config(const Object*object)
 	{
-		Config parent_config=object->Parent::get_config();                              //得到父类的Config
-		auto sub_config=Reflectable::field.find(GET_TYPE_NAME(Object));                 //得到子类的Config
-		if(sub_config==Reflectable::field.end())                                        
-			field[GET_TYPE_NAME(Object)]=Reflectable::field[GET_TYPE_NAME(Parent)];     //子类的属性继承自父类,注意不要出现同名属性.
+		Config parent_config=Reflectable::Inherit<Parent>::get_config(object);
 		Config config=Serializable::get_config(object);                                 //同时Config也要进行合并，得到父类Config，然后添加子类Config内容
 		for(auto&it:parent_config)
 			if(it.first!="class_name")
