@@ -4,28 +4,44 @@
 #include<string>
 #include<tuple>
 #include<utility>
+#define GET_TYPE_NAME(Type) get_type_name<Type>().str //之前的代码采用运行时获得类型名称，GET_TYPE_NAME(T)宏，未来将改为:get_type_name<T>().str
+
 struct EmptyClass{}; //在Reflectanle::get_method与Reflectable::classmethod_wrapper中有使用，用于类型转换的"中介"
+
+template<char...args>
+struct static_string; //编译期静态字符串
+
+template<typename Object>
+constexpr auto get_type_name(); //编译期获得类型的字符串名称
+
 template<typename T>
 struct HasCustomSerializeMethod;
 //是否有自定义的序列化与反序列化成员函数
+
 template<typename T>
 struct IsSetOrMap;       
 //std::unordered_map,std::map,std::set,std::unordered_set
+
 template<typename T>
 struct IsSerializableType; 
 //编译期检测是否有成员函数get_config,如果value=true，说明该类型是支持序列化的非基本类型(实现了get_config方法) 
+
 template<typename T>
 struct IsIterableType;     
 //是否是可迭代的，比如std容器 
+
 template<typename T>
 struct IsTupleOrPair;
 //是否是std::tuple,std::pair
+
 template<typename Object>
 struct IsArrayType;	
 //是否是C++的原生数组,int a[15]，不过IsArrayType<std::array<int,15>>::value=0,这个会被检测为tuple。但是似乎没什么影响，凑合着用了
+
 template<typename Method>
 struct IsClassMethodType;
 //是否是成员函数
+
 struct HashFunc;
 //对于std::pair<A,B>计算哈希值
 struct EqualKey;
@@ -33,12 +49,45 @@ struct EqualKey;
 template <typename T, size_t N>
 inline constexpr size_t GetArrayLength(const T(&)[N]);
 //编译期获得数组长度
+
 inline std::vector<std::string>unpacking_list(const std::string&serialized); 
 //列表解包,"[1,2,3,4]"->["1","2","3","4"]
+
 template<typename Object,int index=0>
 inline auto for_each_element(Object&object,auto&&callback);                 
 //遍历std::tuple,std::pair每个元素,序列化/反序列化 传入函数对象即可
 
+template<char...args>
+struct static_string
+{
+	static constexpr const char str[]={args...};
+	operator const char*()const{return static_string::str;}
+};
+template<typename Object>
+constexpr auto get_type_name()
+{
+	constexpr std::string_view fully_name=__PRETTY_FUNCTION__;		
+	constexpr std::size_t begin=[&]()
+	{
+		for(std::size_t i=0;i<fully_name.size();i++)
+			if(fully_name[i]=='=')
+				return i+2;
+	}();
+	constexpr std::size_t end=[&]()
+	{
+		for(std::size_t i=0;i<fully_name.size();i++)
+			if(fully_name[i]==']')
+				return i;
+	}();
+	constexpr auto type_name_view=fully_name.substr(begin,end-begin);
+	constexpr auto indices=std::make_index_sequence<type_name_view.size()>();
+	constexpr auto type_name=[&]<std::size_t...indices>(std::integer_sequence<std::size_t,indices...>)
+	{
+		constexpr auto str=static_string<type_name_view[indices]...,'\0'>();
+		return str;
+	}(indices);
+	return type_name;
+}
 template<typename T>
 struct HasCustomSerializeMethod
 {
