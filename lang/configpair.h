@@ -4,10 +4,12 @@
 #include<typeinfo>
 #include<sstream>
 #include<vector>
+#include<cxxabi.h>
 #include<unordered_map>
 #include<functional>
 #include"utils.h"
 #include"exception.h"
+#define GET_TYPE_NAME(type) abi::__cxa_demangle(typeid(type).name(),0,0,0)
 struct ConfigPair
 {
 	template<typename T>
