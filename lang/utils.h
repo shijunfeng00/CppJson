@@ -4,7 +4,7 @@
 #include<string>
 #include<tuple>
 #include<utility>
-#define GET_TYPE_NAME(Type) get_type_name<Type>().str //之前的代码采用运行时获得类型名称，GET_TYPE_NAME(T)宏，未来将改为:get_type_name<T>().str
+#define GET_TYPE_NAME_v2(Type) get_type_name<Type>().str
 
 struct EmptyClass{}; //在Reflectanle::get_method与Reflectable::classmethod_wrapper中有使用，用于类型转换的"中介"
 
