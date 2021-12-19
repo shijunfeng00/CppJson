@@ -1,4 +1,3 @@
-//对于派生类的序列化与反序列化
 #include"lang/serializable.h"
 #include"iostream"
 using namespace std;
@@ -48,7 +47,7 @@ int main()
 	son->x=233;
 	std::string json=Serializable::dumps(*son);
 	cout<<"json string:\n"<<json<<endl; 
-	GrandSon*gs=(GrandSon*)Serializable::loads(json);
+	GrandSon*gs=(GrandSon*)Serializable::loads(json,"GrandSon");
 	cout<<gs->get_config().serialized_to_string(true)<<endl;
 	cout<<gs->x<<endl;
 	for(auto&it:gs->y)
