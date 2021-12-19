@@ -23,8 +23,30 @@ public:
 	inline static std::string dumps(const Object&object);        //序列化对象
 	template<typename Type>
 	inline static std::string dumps(const std::initializer_list<Type>&object);
-	template<typename Object>
+	template<typename Object=void*>
 	inline static auto loads(const std::string&json);            //反序列化还原对象
+	inline static void*loads(const std::string&json,const std::string&class_name)
+	{
+		void*object=nullptr;
+		try
+		{
+			object=Reflectable::get_instance(class_name);
+			ConfigPair::from_config_string[class_name](object,json);
+			return object;
+		}
+		catch(JsonDecodeDelimiterException&e)
+		{
+			throw e;
+		}
+		catch(JsonDecodeUnknowException&e)
+		{
+			throw e;
+		}
+		catch(std::exception&e)                                                                   //在反序列化中由于错误的字段名或者不合法的Json字串导致解码失败
+		{
+			throw JsonDecodeUnknowException(__LINE__,__FILE__);
+		}	
+	}
 	template<typename Object>                             
 	inline static void from_config(Object*object,Config&config); //从Config中还原原始对象
 	
