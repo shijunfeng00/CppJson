@@ -5,7 +5,7 @@
 struct NoSuchClassException:public std::exception
 { 
 public:
-    explicit NoSuchClassException(const std::string&type_name,const std::string&field_name);
+    explicit NoSuchClassException(const std::string&type_name);
     virtual ~NoSuchClassException()throw();
     virtual const char*what()const throw();
 protected: 
@@ -64,10 +64,10 @@ public:
 	virtual const char*what()const throw();
 };
 /********************************************************************************************/
-NoSuchClassException::NoSuchClassException(const std::string&type_name,const std::string&field_name)
+NoSuchClassException::NoSuchClassException(const std::string&type_name)
 {
 	std::ostringstream oss;
-	oss<<"Object of type <"<<type_name<<"> dose not has field named '"<<field_name<<"' .";
+	oss<<"Class '"<<type_name<<"' dose not exists or not reflectable.";
 	this->message=oss.str();
 }
 NoSuchClassException::~NoSuchClassException()
