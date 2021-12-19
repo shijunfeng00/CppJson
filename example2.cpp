@@ -48,13 +48,12 @@ int main()
 	getline(fin,json);
 	fin.close();
 	cout<<"json string:\n"<<json<<endl<<endl;  
-	Node*root=(Node*)Serializable::loads(json); //反序列化
+	Node*root=(Node*)Serializable::loads(json,"Node"); //反序列化
 	cout<<root->value;	 
 }
 /*
 输出结果：
 json string:
 { "rson":{ "rson":null, "lson":null, "value":6, "class_name":"Node" } , "lson":{ "rson":{ "rson":{ "rson":null, "lson":null, "value":6, "class_name":"Node" } , "lson":{ "rson":null, "lson":null, "value":5, "class_name":"Node" } , "value":11, "class_name":"Node" } , "lson":{ "rson":null, "lson":null, "value":5, "class_name":"Node" } , "value":55, "class_name":"Node" } , "value":49, "class_name":"Node" }
-
 49
 */
