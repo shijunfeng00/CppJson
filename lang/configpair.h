@@ -178,7 +178,6 @@ std::string ConfigPair::get_config_string(const Object&field)
 			{
 				std::vector<std::string>values=unpacking_list(str);
 				Object object(values.size());//元素个数是可以确定的，一次性分配好空间
-				std::cout<<GET_TYPE_NAME(Object)<<std::endl;
 				int index=0;
 				for(auto&it:object)                                     //Object可能是std::list,std::deque,所以不能直接下标访问
 				{
