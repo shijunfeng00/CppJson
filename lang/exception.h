@@ -2,6 +2,16 @@
 #define __SERIALIZABLE_EXCEPTION_H__
 #include<string>
 #include<sstream>
+struct NoSuchClassException:public std::exception
+{ 
+public:
+    explicit NoSuchClassException(const std::string&type_name,const std::string&field_name);
+    virtual ~NoSuchClassException()throw();
+    virtual const char*what()const throw();
+protected: 
+    std::string message;
+};
+
 struct NoSuchFieldException:public std::exception
 { 
 public:
@@ -53,6 +63,21 @@ public:
 	virtual ~JsonDecodeUnknowException();
 	virtual const char*what()const throw();
 };
+/********************************************************************************************/
+NoSuchClassException::NoSuchClassException(const std::string&type_name,const std::string&field_name)
+{
+	std::ostringstream oss;
+	oss<<"Object of type <"<<type_name<<"> dose not has field named '"<<field_name<<"' .";
+	this->message=oss.str();
+}
+NoSuchClassException::~NoSuchClassException()
+{
+	
+}
+const char*NoSuchClassException::what()const throw()
+{
+	return this->message.c_str();
+}
 /********************************************************************************************/
 NoSuchFieldException::NoSuchFieldException(const std::string&type_name,const std::string&field_name)
 {
