@@ -205,14 +205,13 @@ template<typename Object>
 auto Serializable::loads(const std::string&json)
 {
 	std::string class_name=GET_TYPE_NAME(Object);
-	if constexpr(IsSerializableType<Object>::value)
+	if constexpr(IsSerializableType<Object>::value) //实现了get_config的可序列化对象
 	{
-		void*object=nullptr;
 		try
-		{																																																																																																																																															
-			object=Reflectable::get_instance(class_name);                                         //创建实例
-			ConfigPair::from_config_string[class_name](object,json);                              //反序列化还原
-			return std::ref(*(Object*)object);	
+		{																																																																																																																																													
+			Object object;
+			ConfigPair::from_config_string[class_name](&object,json);                              //反序列化还原
+			return object;
 		}
 		catch(JsonDecodeDelimiterException&e)
 		{
@@ -223,17 +222,17 @@ auto Serializable::loads(const std::string&json)
 			throw e;
 		}
 		catch(std::exception&e)                                                                   //在反序列化中由于错误的字段名或者不合法的Json字串导致解码失败
-		{      
-			Reflectable::delete_instance(class_name,object);                                      //暂时还没想好怎么去具体的检测是哪里出了什么问题，因此统一抛出一个Unknow异常.
+		{
 			throw JsonDecodeUnknowException(__LINE__,__FILE__);
 		}	
 	}
-	else
+	else //其他的没有实现get_config方法，但是是int,std::vector等可以序列化的class
 	{
-		Object*object=new Object();
 		try
 		{
-			ConfigPair::from_config_string[class_name]((void*)object,json);
+			Object object;
+			ConfigPair::from_config_string[class_name](&object,json);
+			return object;
 		}
 		catch(JsonDecodeDelimiterException&e)
 		{
@@ -247,7 +246,6 @@ auto Serializable::loads(const std::string&json)
 		{
 			throw JsonDecodeUnknowException(__LINE__,__FILE__);
 		}
-		return std::ref(*(Object*)object);
 	}
 }
 template<typename T,typename ...Args>
