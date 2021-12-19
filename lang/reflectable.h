@@ -3,14 +3,6 @@
 #include"config.h"
 #include<vector>
 #include<functional>
-struct FieldInfo:public std::unordered_map<std::string,std::unordered_map<std::string,std::pair<std::string,std::size_t>>>
-{
-	;
-};
-struct MethodInfo:public std::unordered_map<std::string,std::unordered_map<std::string,void(EmptyClass::*)(void*)>>
-{
-	;
-};
 struct Reflectable
 {
 public:
@@ -26,7 +18,7 @@ public:
 	
 	template<typename T>
 	inline static Config get_config(const T*object);//得到T的类型信息和名称,判断T类型的属性键值对是否建立,没有建立就建立(只建立一次) 
-	
+	inline static std::vector<std::string_view>get_serializable_types();
 	template<typename FieldType=void*>
 	inline static auto get_field(void*object,std::string class_name,std::string field_name); 
 
@@ -34,6 +26,8 @@ public:
 	inline static auto get_field(ClassType&object,std::string field_name); 
 
 	inline static std::string get_field_type(std::string class_name,std::string field_name); 
+	inline static std::size_t get_field_offset(std::string class_name,std::string field_name); 
+		
 	template<typename ClassType>
 	inline static std::vector<std::string>get_field_names();
 	template<typename ClassType>
@@ -63,13 +57,21 @@ std::unordered_map<std::string,std::function<void*(void)>>Reflectable::default_c
 std::unordered_map<std::string,std::function<void(void*)>>Reflectable::default_deconstructors;
 std::unordered_map<std::string,std::unordered_map<std::string,std::pair<std::string,std::size_t>>>Reflectable::field;//(类名,属性名)->(字符串值,偏移量)
 std::unordered_map<std::string,std::unordered_map<std::string,void(EmptyClass::*)(void*)>>&Reflectable::method=ConfigPair::from_classmethod_string;
+
+std::vector<std::string_view>Reflectable::get_serializable_types()
+{
+	std::vector<std::string_view>types;
+	for(auto&it:ConfigPair::from_config_string)
+		types.push_back(it.first);
+	return types;
+}
 template<typename ClassType>
 std::vector<std::string>Reflectable::get_field_names()
 {
 	static std::vector<std::string>names=[&]()->std::vector<std::string> //这样的话就只会被求值一次.
 	{                                                                    //考虑到C++的类的属性和方法并不能运行时动态改变
 		std::vector<std::string>names;
-		for(auto&it:field[GET_TYPE_NAME(ClassType)])
+		for(auto&it:field[GET_TYPE_NAME(ClassType)]) 
 		{
 			names.push_back(it.first);
 		}
@@ -102,36 +104,68 @@ Config Reflectable::get_config(const T*object)
 template<typename ReturnType,typename ObjectType,typename...Args>
 auto Reflectable::get_method(ObjectType&object,const std::string&field_name,Args&&...args)//通过字符串访问成员函数,get_field<返回值类型>(对象,字段名,参数列表...);
 {
-	auto func=Reflectable::method[GET_TYPE_NAME(ObjectType)][field_name];
-	auto method=reinterpret_cast<ReturnType(ObjectType::*)(Args...)>(func);
-	return (object.*method)(std::forward<Args>(args)...);
+	try
+	{
+		auto func=Reflectable::method[GET_TYPE_NAME(ObjectType)][field_name];
+		auto method=reinterpret_cast<ReturnType(ObjectType::*)(Args...)>(func);
+		return (object.*method)(std::forward<Args>(args)...);
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchMethodException(GET_TYPE_NAME(ObjectType),field_name);
+	}
 }
 template<typename FieldType=void*,typename ClassType>
 auto Reflectable::get_field(ClassType&object,std::string field_name)
 {
-	std::string class_name=GET_TYPE_NAME(ClassType);
-	std::size_t offset=Reflectable::field[class_name][field_name].second;
-	if constexpr(std::is_same<FieldType,void*>::value)
-		return (void*)((std::size_t)(&object)+offset);
-	else
-		return (*(FieldType*)((std::size_t)(&object)+offset));
+	try
+	{
+		std::string class_name=GET_TYPE_NAME(ClassType);
+		std::size_t offset=Reflectable::field[class_name][field_name].second;
+		if constexpr(std::is_same<FieldType,void*>::value)
+			return (void*)((std::size_t)(&object)+offset);
+		else
+			return (*(FieldType*)((std::size_t)(&object)+offset));
+		}
+	catch(std::exception&e)
+	{
+		throw NoSuchFieldException(GET_TYPE_NAME(ClassType),field_name);
+	}
 }
 template<typename FieldType=void*>
 auto Reflectable::get_field(void*object,std::string class_name,std::string field_name)
 {
-	std::size_t offset=Reflectable::field[class_name][field_name].second;
-	if constexpr(std::is_same<FieldType,void*>::value)
-		return (void*)((std::size_t)(object)+offset);
-	else
-		return (*(FieldType*)((std::size_t)(object)+offset));
+	try
+	{
+		std::size_t offset=Reflectable::field[class_name][field_name].second;
+		if constexpr(std::is_same<FieldType,void*>::value)
+			return (void*)((std::size_t)(object)+offset);
+		else
+			return (*(FieldType*)((std::size_t)(object)+offset));
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchFieldException(class_name,field_name);
+	}
 }
 std::string Reflectable::get_field_type(std::string class_name,std::string field_name)
 {
 	return Reflectable::field[class_name][field_name].first;
 }
+std::size_t Reflectable::get_field_offset(std::string class_name,std::string field_name)
+{
+	return Reflectable::field[class_name][field_name].second;
+}
 void*Reflectable::get_instance(std::string class_name)
 {
-	return Reflectable::default_constructors[class_name]();
+	try
+	{
+		return Reflectable::default_constructors[class_name]();
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchClassException(class_name);
+	}
 }
 void Reflectable::delete_instance(std::string class_name,void*object)
 {
