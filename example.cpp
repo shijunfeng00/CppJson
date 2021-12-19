@@ -31,7 +31,7 @@ struct Node
 int main()
 {
 	Serializable::Regist<Node>();
-	void*object=Reflectable::get_instance("Node");                        //创建实例
+	void*object=Reflectable::get_instance("Node");                        //创建实例 
 
 	Reflectable::set_field<int>(object,"Node","x",4);                     //通过字符串名称修改成员变量
 	Reflectable::set_field<float>(object,"Node","y",5);
