@@ -73,9 +73,11 @@ DEF_FIELD_END
 * 数组`int a[15]`,`std::array<int,15>`
 * 上述类型的组合及其指针,`std::vector<std::pair<int*,float*>>`
 * 支持派生类的序列化与反序列化,目前不支持多重继承
+update in 2021/12/19
+* 除了实现了get_config的struct/class，可以直接支持上述类型的变量传入并进行序列化与反序列化
 ## 注册
-首先看一个简单的例子
-```cpp
+首先看一个简单的例子/
+```cpp/
 struct Node
 {
 	int x;
@@ -400,13 +402,13 @@ I AM OK
 2021 shijunfeng00
 */
 ```
-##反射代码示例
+## 反射代码示例
 反射相对于序列化和反序列化会多一些细节出来
 如果只需要反射,可以只用```#include"lang/reflectable.h"```
 以及对应的```Reflectable::Regist<T>()```和```Config config=Reflectable::get_config(this)```
 这样的话就只有反射没有序列化/反序列化的功能
 
-###代码示例4：打印属性名称和方法名称
+### 代码示例4：打印属性名称和方法名称
 ```cpp
 #include"lang/reflectable.h"
 #include<iostream>
