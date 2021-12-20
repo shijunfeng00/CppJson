@@ -1,0 +1,53 @@
+in:void testA()
+json:{ "z":"nothing", "y":2.3, "x":2, "class_name":"TestA" } 
+{
+"z":"nothing",
+"y":2.3,
+"x":2,
+"class_name":"TestA"
+}
+
+in:void testB()
+json:{ "data":[5,[5.5,"test_b_1"]], "next":null, "class_name":"TestB" } 
+{
+"data":[5,[5.5,"test_b_1"]],
+"next":null,
+"class_name":"TestB"
+}
+
+json:{ "data":[8,[8.8,"test_b_4"]], "next":{ "data":[7,[7.7,"test_b_3"]], "next":{ "data":[6,[6.6,"test_b_2"]], "next":{ "data":[5,[5.5,"test_b_1"]], "next":null, "class_name":"TestB" } , "class_name":"TestB" } , "class_name":"TestB" } , "class_name":"TestB" } 
+{
+"data":[8,[8.8,"test_b_4"]],
+"next":{ "data":[7,[7.7,"test_b_3"]], "next":{ "data":[6,[6.6,"test_b_2"]], "next":{ "data":[5,[5.5,"test_b_1"]], "next":null, "class_name":"TestB" } , "class_name":"TestB" } , "class_name":"TestB" } ,
+"class_name":"TestB"
+}
+
+in:void testC()
+json:{ "a":[9,9,9], "arr":[3,4,5,6,7], "lt":[2,3,4,5,6], "vec":[1,2,3,4,5], "tp":[5,{ "z":"testa", "y":1.1, "x":1, "class_name":"TestA" } ,{ "data":[2,[2.2,"testb"]], "next":null, "class_name":"TestB" } ], "class_name":"TestC" } 
+{
+"a":[9,9,9],
+"arr":[3,4,5,6,7],
+"lt":[2,3,4,5,6],
+"vec":[1,2,3,4,5],
+"tp":[5,{ "z":"testa", "y":1.1, "x":1, "class_name":"TestA" } ,{ "data":[2,[2.2,"testb"]], "next":null, "class_name":"TestB" } ],
+"class_name":"TestC"
+}
+
+in:void testD()
+json:{ "t":23.45, "y":4, "z":"test", "x":3, "class_name":"TestD" } 
+{
+"t":23.45,
+"y":4,
+"z":"test",
+"x":3,
+"class_name":"TestD"
+}
+
+in:void testE()
+
+json:
+[3,1,4,1,5,9,2,6]
+json
+[3,1,4,1,5,9,2,6]
+json
+[1,{ "data":[0,[0,""]], "next":null, "class_name":"TestB" } ,"i wanna be the guy."]
