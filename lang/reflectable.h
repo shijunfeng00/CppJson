@@ -126,7 +126,7 @@ auto Reflectable::get_field(ClassType&object,std::string field_name)
 			return (void*)((std::size_t)(&object)+offset);
 		else
 			return (*(FieldType*)((std::size_t)(&object)+offset));
-		}
+	}
 	catch(std::exception&e)
 	{
 		throw NoSuchFieldException(GET_TYPE_NAME(ClassType),field_name);
@@ -190,12 +190,12 @@ struct Reflectable::Regist
 	Regist()
 	{
 		T object;
-		static Config config=object.get_config();//必须调用get_config,才能建立类型信息,所以这里必须先调用一次Reflectable的get_config
+		static Config config=object.get_config();                           //必须调用get_config,才能建立类型信息,所以这里必须先调用一次Reflectable的get_config
 		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //默认构造函数 
 		{
 			return (void*)(new T());
 		};
-		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void //析构函数 
+		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void  //析构函数 
 		{
 			delete ((T*)object);
 		};
@@ -207,13 +207,14 @@ struct Reflectable::Regist<T>
 {
 	Regist()
 	{
+		static_assert(IsSerializableType<T>::value,"There are some objects that use reflection but haven't implement public method Config get_config()const");
 		T object;
 		static Config config=object.get_config();
-		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //默认构造函数 
+		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void*          //默认构造函数 
 		{
 			return (void*)(new T());
 		};
-		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void //析构函数 
+		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void  //析构函数 
 		{
 			delete ((T*)object);
 		};
