@@ -2,9 +2,13 @@
 轻量级C++对象序列化与反射框架。
 # 项目背景
 C++没有原生的反射与序列化，至少从语言层面来说是暂时不支持的
+
 很多时候是需要自己手动去写反射相关的代码
+
 自己实现方案很多，也有很多现成的库可以使用
+
 但是很多代码用起来都异常繁琐，包含各种模板以及宏，比如类似这样的
+
 
 [Ubp.a：99 行实现 C++ 简单反射](https://zhuanlan.zhihu.com/p/112914534)
 
@@ -46,14 +50,21 @@ DEF_FIELD_END
 ```
 
 总之我觉得无论是使用也好，还是注册也好，用起来都是很繁琐的。
+
 所以我自然希望实现一个类似于Tensorflow的自动微分那样，只要写好前向传播代码，自动微分就已经自动生成好了。
+
 我希望当我写完CPP的代码，对应的struct/class的序列化、反序列化、反射就已经自动完成了所有注册，
+
 也不用单独为每个class写一个序列化与反序列化，一切东西都用起来足够"原生"。
+
 所以我的代码尽可能简化了代码使用的这一过程，具体实现其实也不复杂，就是各种类型匹配和递归调用的问题。
+
 我将会在后文中给出充分的示例。
+
 # 安装
 
 采用Header Only设计，使用起来非常方便，只需要包含相关头文件即可
+
 
 ```#include"lang/serializble.h"```。
 
@@ -64,7 +75,9 @@ DEF_FIELD_END
 ## 相关限制
 
 目前我的代码支持属性满足以下类型条件的class的序列化与反序列化
+
 原本反射只是为了序列化和反序列化，只能支持属性值，现在已经支持成员函数了，不过并未处理继承与派生，以及函数重载的问题
+
 * C++基本类型(`int`,`float`,`char`,...)
 * 含有迭代器的容器(`std::vector`,`std::list`,`std::deque`,...)
 * 容器适配器(`std::map`,`std::set`,`std::unordered_map`,`std::unordered_set`,...)
@@ -118,7 +131,7 @@ struct Node
 int main()
 {
 	Serializable::Regist<Node>();
-	void*object=Reflectable::get_instance("Node");                        //创建实例
+	void*object=Reflectable::get_instance("Node");                        //创建实例 
 
 	Reflectable::set_field<int>(object,"Node","x",4);                     //通过字符串名称修改成员变量
 	Reflectable::set_field<float>(object,"Node","y",5);
@@ -162,14 +175,13 @@ test
 序列化，反序列化关键方法只有两个
 ```Serializable::dumps```和```Serializable::loads<T>```
 分别对应序列化与反序列化，其中反序列化需要显式的给出被反序列化的对象类型
-如果不给的话将会返回一个```void*```指针，如果给了参数，会返回一个引用
-如果不想调用额外的复制构造函数，可以使用```auto&object=Serializable::loads<T>(json_string)```
+```auto object=Serializable::loads<T>(json_string)```
 ### 示例代码1：
 ```cpp
 #include"lang/serializable.h"
 #include<iostream>
 #include<fstream>
-#include<cstring>
+#include<cstring> 
 using namespace std;
 struct Node
 {
@@ -178,9 +190,9 @@ struct Node
 		std::memset(z,0,sizeof(z));
 		t={1,2,3,4};
 	}
-	Config get_config()const                                                    //1.实现Config get_config()const 方法
+	Config get_config()const 
 	{
-		Config config=Serializable::get_config(this); 
+		Config config=Serializable::get_config(this);
 		config.update({
 			{"x",x},
 			{"y",y},
@@ -194,9 +206,9 @@ struct Node
 	int z[3];
 	std::array<int,4>t;
 };
-int main()
+int main() 
 {
-	Serializable::Regist<Node>();                                                   //2.完成简单注册
+	Serializable::Regist<Node>();                                                   //注册
 	Node a=*(Node*)Reflectable::get_instance("Node");                               //创建实例
 	Reflectable::set_field(a,"x",make_tuple(3.2f,make_pair(5,string{"test"})));     //通过名称修改属性
 	Reflectable::set_field(a,"y",std::vector<Node*>{new Node,nullptr}); 
@@ -205,7 +217,7 @@ int main()
 	a.t[0]=2021,a.t[1]=10,a.t[2]=19,a.t[3]=10;
 	std::string json=Serializable::dumps(a);                                        //序列化为json格式的字符串
 	cout<<"json\n"<<json<<endl;         
-	Node&b=Serializable::loads<Node>(json);                                         //通过json格式的字符串进行反序列化
+	Node b=Serializable::loads<Node>(json);                                         //通过json格式的字符串进行反序列化
 	cout<<endl<<a.get_config().serialized_to_string(true);
 	cout<<endl<<b.get_config().serialized_to_string(true);                          //打印结果
 } 
@@ -285,14 +297,13 @@ int main()
 	getline(fin,json);
 	fin.close();
 	cout<<"json string:\n"<<json<<endl<<endl;  
-	Node*root=(Node*)Serializable::loads(json); //反序列化
+	Node*root=(Node*)Serializable::loads(json,"Node"); //反序列化
 	cout<<root->value;	 
 }
 /*
 输出结果：
 json string:
 { "rson":{ "rson":null, "lson":null, "value":6, "class_name":"Node" } , "lson":{ "rson":{ "rson":{ "rson":null, "lson":null, "value":6, "class_name":"Node" } , "lson":{ "rson":null, "lson":null, "value":5, "class_name":"Node" } , "value":11, "class_name":"Node" } , "lson":{ "rson":null, "lson":null, "value":5, "class_name":"Node" } , "value":55, "class_name":"Node" } , "value":49, "class_name":"Node" }
-
 49
 */
 ```
@@ -323,7 +334,6 @@ res
 ```
 ### 示例代码3：派生类的序列化与反序列化
 ```cpp
-//对于派生类的序列化与反序列化
 #include"lang/serializable.h"
 #include"iostream"
 using namespace std;
@@ -373,7 +383,7 @@ int main()
 	son->x=233;
 	std::string json=Serializable::dumps(*son);
 	cout<<"json string:\n"<<json<<endl; 
-	GrandSon*gs=(GrandSon*)Serializable::loads(json);
+	GrandSon*gs=(GrandSon*)Serializable::loads(json,"GrandSon");
 	cout<<gs->get_config().serialized_to_string(true)<<endl;
 	cout<<gs->x<<endl;
 	for(auto&it:gs->y)
@@ -451,6 +461,17 @@ int main()
 	for(auto&it:Reflectable::get_method_names<Node>())                                     //打印方法名称
 		cout<<"name:"<<it<<endl;
 }
+/*
+output:
+fields:
+name:z  type:std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >
+name:y  type:float
+name:x  type:int
+name:class_name type:std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >
+methods:
+name:getName
+name:add
+*/
 ```
 代码中使用```Node*object=*(Node*)Reflectable::get_instance("Node")```来得到一个Node对象
 使用```Reflectable::get_field```来获得属性，对于private属性也能正常访问
@@ -569,46 +590,319 @@ cpp
 5 5
 */
 ```
-# 写在最后：
-至于为什么我采用了get_config的方法，是受到了keras的启发
-```python
-class Quantizer2D(tf.keras.layers.Layer):
-    def __init__(self,soft_sigma=1.0,hard_sigma=1e7,**kwargs):
-        super(Quantizer2D,self).__init__(**kwargs)
-        self.soft_sigma=soft_sigma
-        self.hard_sigma=hard_sigma
-    def quantizer2d(self,centers,tensor,sigma):
-        num_centers=centers.shape.as_list()[1]
-        shape=tf.shape(tensor)
-        batch,width,height,dims=shape[0],shape[1],shape[2],shape[3]
-        x=tf.reshape(tensor,[batch,width*height,1,dims])
-        c=tf.expand_dims(centers,axis=1)
-        dist=tf.reduce_mean(tf.square(x-c),axis=-1)
-        one_hot=tf.nn.softmax(-sigma*dist)
-        quant=tf.reduce_sum(self.index*one_hot,axis=-1)
-        result=tf.reshape(quant,[-1,width,height])
-        return result
-    def build(self,input_shape):
-        center_shape,tensor_shape=input_shape
-        num_centers=center_shape.as_list()[1]
-        self.index=self.add_weight(name='index',
-                                   shape=(num_centers,),
-                                   initializer=tf.keras.initializers.Constant([i for i in range(num_centers)]),
-                                   dtype=tf.float32,
-                                   trainable=False)
-        super(Quantizer2D,self).build(input_shape)
-        self.built=True
-    def call(self,inputs):
-        centers,tensor=inputs
-        soft_quantizer=self.quantizer2d(centers,tensor,self.soft_sigma)
-        hard_quantizer=self.quantizer2d(centers,tensor,self.hard_sigma)
-        quantizer=tf.stop_gradient(hard_quantizer-soft_quantizer)+soft_quantizer
-        return quantizer
-    def get_config(self):
-        config=super(Quantizer2D,self).get_config()
-        config.update({
-            "soft_sigma":self.soft_sigma,
-            "hard_sigma":self.hard_sigma
-        })
-        return config
+## 异常处理
+* 如果试图反射不存在的类，或者没有实现```Config get_config()const```方法的类，会抛出```NoSuchClassException```异常
+* 如果试图访问类中不存在的属性，或者在```Config get_config()const```中没有包含的属性，会抛出```NoSuchFieldException```异常
+* 如果试图访问类中不存在的方法，或者在```Config get_config()const```中没有包含的方法，会抛出```NoSuchFieldException```异常
+* 如果试图序列化没有正确实现```Config get_config()const```的对象，将会抛出```NotSerializableType```异常
+* 如果试图反序列化格式不正确的JSON字串，将会抛出```JsonDecodeException```异常，如果是括号不匹配，会抛出```JsonDecodeDelimiterException```异常，
+* 对于其他的JSON格式错误，将会抛出```JsonDecodeUnknowException```，后续将会继续检测出更多类型的错误，以试图得到更加详细的信息
+### 示例5.1
+```cpp
+#include<iostream>
+#include"lang/serializable.h"
+#include<vector>
+using namespace std;
+struct ClassNoMethodGetConfig
+{
+	int x;
+	int y;
+};
+struct CorrectClass
+{
+	int x;
+	int y;
+	Config get_config()const
+	{
+		Config config=Serializabl
+		e::get_config(this);
+		config.update({
+			{"x",x},
+			{"y",y}
+		});
+		return config;
+	}
+};
+int main()
+{
+	Serializable::Regist<CorrectClass>();
+	try
+	{
+		Reflectable::get_instance("ClassNoMethodGetConfig");
+	}
+	catch(std::exception&e)
+	{
+		printf("runtime error: %s\n",e.what());
+	}
+	try
+	{
+		Reflectable::get_instance("ClassNotExists");
+	}
+	catch(std::exception&e)
+	{
+		printf("runtime error: %s\n",e.what());
+	}
+	try
+	{
+		Reflectable::get_instance("CorrectClass");  //正常调用，无事发生
+	}
+	catch(std::exception&e)
+	{
+		printf("runtime error: %s\n",e.what());
+	}
+}
 ```
+你将会得到如下的异常输出信息
+```
+runtime error: Class 'ClassNoMethodGetConfig' dose not exists or not reflectable.
+runtime error: Class 'ClassNotExists' dose not exists or not reflectable.
+```
+### 示例代码5.2
+```cpp
+#ifndef __REFLECTABLE_H__
+#define __REFLECTABLE_H__
+#include"config.h"
+#include<vector>
+#include<functional>
+struct Reflectable
+{
+public:
+	virtual ~Reflectable(){};
+	template<typename T,typename ...Args>
+	struct Regist;
+	
+	template<typename T>
+	struct Regist<T>;
+	
+	template<typename T>
+	struct Inherit;
+	
+	template<typename T>
+	inline static Config get_config(const T*object);//得到T的类型信息和名称,判断T类型的属性键值对是否建立,没有建立就建立(只建立一次) 
+	inline static std::vector<std::string_view>get_serializable_types();
+	template<typename FieldType=void*>
+	inline static auto get_field(void*object,std::string class_name,std::string field_name); 
+
+	template<typename FieldType=void*,typename ClassType>
+	inline static auto get_field(ClassType&object,std::string field_name); 
+
+	inline static std::string get_field_type(std::string class_name,std::string field_name); 
+	inline static std::size_t get_field_offset(std::string class_name,std::string field_name); 
+		
+	template<typename ClassType>
+	inline static std::vector<std::string>get_field_names();
+	template<typename ClassType>
+	inline static std::vector<std::string>get_method_names();
+	template<typename ReturnType,typename ObjectType,typename...Args>
+	inline static auto get_method(ObjectType&object,const std::string&field_name,Args&&...args);
+	//通过字符串访问成员函数,get_field<返回值类型>(对象,字段名,参数列表...);
+
+	template<typename FieldType,typename ClassType>
+	inline static void set_field(ClassType&object,std::string field_name,const FieldType&data);//设置属性值，因为已经有类型信息，所以不需要调用default_constructors[type]里面的函数来构造 
+	
+	inline static void set_field(void*object,std::string class_name,std::string field_name,const auto&value);
+
+	inline static void delete_instance(std::string class_name,void*object); 
+	inline static void*get_instance(std::string class_name);
+	
+	using ClassName=std::string;
+	using MethodName=std::unordered_map<std::string,void(EmptyClass::*)(void*)>;
+	using FieldName=std::unordered_map<std::string,std::pair<std::string,std::size_t>>;
+private:	
+	static std::unordered_map<ClassName,FieldName>field;
+	static std::unordered_map<ClassName,std::function<void*(void)>>default_constructors;
+	static std::unordered_map<ClassName,std::function<void(void*)>>default_deconstructors;
+	static std::unordered_map<std::string,MethodName>&method;
+};
+std::unordered_map<std::string,std::function<void*(void)>>Reflectable::default_constructors;
+std::unordered_map<std::string,std::function<void(void*)>>Reflectable::default_deconstructors;
+std::unordered_map<std::string,std::unordered_map<std::string,std::pair<std::string,std::size_t>>>Reflectable::field;//(类名,属性名)->(字符串值,偏移量)
+std::unordered_map<std::string,std::unordered_map<std::string,void(EmptyClass::*)(void*)>>&Reflectable::method=ConfigPair::from_classmethod_string;
+
+std::vector<std::string_view>Reflectable::get_serializable_types()
+{
+	std::vector<std::string_view>types;
+	for(auto&it:ConfigPair::from_config_string)
+		types.push_back(it.first);
+	return types;
+}
+template<typename ClassType>
+std::vector<std::string>Reflectable::get_field_names()
+{
+	static std::vector<std::string>names=[&]()->std::vector<std::string> //这样的话就只会被求值一次.
+	{                                                                    //考虑到C++的类的属性和方法并不能运行时动态改变
+		std::vector<std::string>names;
+		for(auto&it:field[GET_TYPE_NAME(ClassType)]) 
+		{
+			names.push_back(it.first);
+		}
+		return names;	
+	}();		
+	return names;
+}
+template<typename ClassType>
+std::vector<std::string>Reflectable::get_method_names()
+{
+	static std::vector<std::string>names=[&]()->std::vector<std::string>
+	{
+		std::vector<std::string>names;
+		for(auto&it:method[GET_TYPE_NAME(ClassType)])
+		{
+			names.push_back(it.first);
+		}
+		return names;	
+	}();		
+	return names;
+}
+template<typename T>
+Config Reflectable::get_config(const T*object)
+{
+	std::string class_name=GET_TYPE_NAME(T);
+	Config config(&field[class_name],object);
+	config.update({{"class_name",class_name}});
+	return config;
+}
+template<typename ReturnType,typename ObjectType,typename...Args>
+auto Reflectable::get_method(ObjectType&object,const std::string&field_name,Args&&...args)//通过字符串访问成员函数,get_field<返回值类型>(对象,字段名,参数列表...);
+{
+	try
+	{
+		auto func=Reflectable::method.at(GET_TYPE_NAME(ObjectType)).at(field_name);
+		auto method=reinterpret_cast<ReturnType(ObjectType::*)(Args...)>(func);
+		return (object.*method)(std::forward<Args>(args)...);
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchMethodException(GET_TYPE_NAME(ObjectType),field_name);
+	}
+}
+template<typename FieldType=void*,typename ClassType>
+auto Reflectable::get_field(ClassType&object,std::string field_name)
+{
+	try
+	{
+		std::string class_name=GET_TYPE_NAME(ClassType);
+		std::size_t offset=Reflectable::field.at(class_name).at(field_name).second;
+		if constexpr(std::is_same<FieldType,void*>::value)
+			return (void*)((std::size_t)(&object)+offset);
+		else
+			return (*(FieldType*)((std::size_t)(&object)+offset));
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchFieldException(GET_TYPE_NAME(ClassType),field_name);
+	}
+}
+template<typename FieldType=void*>
+auto Reflectable::get_field(void*object,std::string class_name,std::string field_name)
+{
+	
+	try
+	{
+		std::size_t offset=Reflectable::field.at(class_name).at(field_name).second;
+		if constexpr(std::is_same<FieldType,void*>::value)
+			return (void*)((std::size_t)(object)+offset);
+		else
+			return (*(FieldType*)((std::size_t)(object)+offset));
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchFieldException(class_name,field_name);
+	}
+}
+std::string Reflectable::get_field_type(std::string class_name,std::string field_name)
+{
+	return Reflectable::field.at(class_name).at(field_name).first;
+}
+std::size_t Reflectable::get_field_offset(std::string class_name,std::string field_name)
+{
+	return Reflectable::field.at(class_name).at(field_name).second;
+}
+void*Reflectable::get_instance(std::string class_name)
+{
+	try
+	{
+		return Reflectable::default_constructors[class_name]();
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchClassException(class_name);
+	}
+}
+void Reflectable::delete_instance(std::string class_name,void*object)
+{
+	default_deconstructors[class_name](object);
+}
+template<typename FieldType,typename ClassType>
+void Reflectable::set_field(ClassType&object,std::string field_name,const FieldType&data)
+{
+	std::string class_name=GET_TYPE_NAME(ClassType);
+	std::size_t offset=Reflectable::field.at(class_name).at(field_name).second;
+	*(FieldType*)((std::size_t)(&object)+offset)=data;
+}
+void Reflectable::set_field(void*object,std::string class_name,std::string field_name,const auto&value)
+{
+	std::size_t offset=Reflectable::field.at(class_name).at(field_name).second;
+	using field_type=typename std::remove_const<typename std::remove_reference<decltype(value)>::type>::type;
+	*(field_type*)((std::size_t)(object)+offset)=value;
+}
+template<typename T,typename ...Args>
+struct Reflectable::Regist
+{
+	Regist()
+	{
+		T object;
+		static Config config=object.get_config();                           //必须调用get_config,才能建立类型信息,所以这里必须先调用一次Reflectable的get_config
+		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void* //默认构造函数 
+		{
+			return (void*)(new T());
+		};
+		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void  //析构函数 
+		{
+			delete ((T*)object);
+		};
+		Regist<Args...>();
+	}
+};
+template<typename T>
+struct Reflectable::Regist<T>
+{
+	Regist()
+	{
+		static_assert(IsSerializableType<T>::value,"There are some objects that use reflection but haven't implement public method Config get_config()const");
+		T object;
+		static Config config=object.get_config();
+		Reflectable::default_constructors[GET_TYPE_NAME(T)]=[](void)->void*          //默认构造函数 
+		{
+			return (void*)(new T());
+		};
+		Reflectable::default_deconstructors[GET_TYPE_NAME(T)]=[](void*object)->void  //析构函数 
+		{
+			delete ((T*)object);
+		};
+	}
+};
+template<typename Parent>
+struct Reflectable::Inherit
+{
+	template<typename Object>
+	static Config get_config(const Object*object)
+	{
+		Config parent_config=object->Parent::get_config();                              //得到父类的Config
+		auto sub_config=Reflectable::field.find(GET_TYPE_NAME(Object));                 //得到子类的Config
+		if(sub_config==Reflectable::field.end())                                        
+			field[GET_TYPE_NAME(Object)]=Reflectable::field[GET_TYPE_NAME(Parent)];     //子类的属性继承自父类,注意不要出现同名属性.
+		return parent_config;	
+	}
+};
+#endif
+```
+你将会得到如下的异常信息:
+```cpp
+runtime error:Object of type <CorrectClass> dose not has field named 'z' .
+```
+更多的示例请参考example6.cpp
+# 未来的一些想法
+* 尽可能将更多的计算放到编译期，优化速度
+* std::string_view代替std::string(因为刚开始采用C++14编写，后面才换到了C++17)
+* 多继承，虚继承
