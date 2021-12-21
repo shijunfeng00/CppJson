@@ -106,7 +106,7 @@ auto Reflectable::get_method(ObjectType&object,const std::string&field_name,Args
 {
 	try
 	{
-		auto func=Reflectable::method[GET_TYPE_NAME(ObjectType)][field_name];
+		auto func=Reflectable::method.at(GET_TYPE_NAME(ObjectType)).at(field_name);
 		auto method=reinterpret_cast<ReturnType(ObjectType::*)(Args...)>(func);
 		return (object.*method)(std::forward<Args>(args)...);
 	}
@@ -121,7 +121,7 @@ auto Reflectable::get_field(ClassType&object,std::string field_name)
 	try
 	{
 		std::string class_name=GET_TYPE_NAME(ClassType);
-		std::size_t offset=Reflectable::field[class_name][field_name].second;
+		std::size_t offset=Reflectable::field.at(class_name).at(field_name).second;
 		if constexpr(std::is_same<FieldType,void*>::value)
 			return (void*)((std::size_t)(&object)+offset);
 		else
@@ -135,9 +135,10 @@ auto Reflectable::get_field(ClassType&object,std::string field_name)
 template<typename FieldType=void*>
 auto Reflectable::get_field(void*object,std::string class_name,std::string field_name)
 {
+	
 	try
 	{
-		std::size_t offset=Reflectable::field[class_name][field_name].second;
+		std::size_t offset=Reflectable::field.at(class_name).at(field_name).second;
 		if constexpr(std::is_same<FieldType,void*>::value)
 			return (void*)((std::size_t)(object)+offset);
 		else
@@ -150,11 +151,11 @@ auto Reflectable::get_field(void*object,std::string class_name,std::string field
 }
 std::string Reflectable::get_field_type(std::string class_name,std::string field_name)
 {
-	return Reflectable::field[class_name][field_name].first;
+	return Reflectable::field.at(class_name).at(field_name).first;
 }
 std::size_t Reflectable::get_field_offset(std::string class_name,std::string field_name)
 {
-	return Reflectable::field[class_name][field_name].second;
+	return Reflectable::field.at(class_name).at(field_name).second;
 }
 void*Reflectable::get_instance(std::string class_name)
 {
@@ -174,15 +175,29 @@ void Reflectable::delete_instance(std::string class_name,void*object)
 template<typename FieldType,typename ClassType>
 void Reflectable::set_field(ClassType&object,std::string field_name,const FieldType&data)
 {
-	std::string class_name=GET_TYPE_NAME(ClassType);
-	std::size_t offset=Reflectable::field[class_name][field_name].second;
-	*(FieldType*)((std::size_t)(&object)+offset)=data;
+	try
+	{
+		std::string class_name=GET_TYPE_NAME(ClassType);
+		std::size_t offset=Reflectable::field.at(class_name).at(field_name).second;
+		*(FieldType*)((std::size_t)(&object)+offset)=data;
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchFieldException(GET_TYPE_NAME(ClassType));
+	}
 }
 void Reflectable::set_field(void*object,std::string class_name,std::string field_name,const auto&value)
 {
-	std::size_t offset=Reflectable::field[class_name][field_name].second;
-	using field_type=typename std::remove_const<typename std::remove_reference<decltype(value)>::type>::type;
-	*(field_type*)((std::size_t)(object)+offset)=value;
+	try
+	{
+		std::size_t offset=Reflectable::field.at(class_name).at(field_name).second;
+		using field_type=typename std::remove_const<typename std::remove_reference<decltype(value)>::type>::type;
+		*(field_type*)((std::size_t)(object)+offset)=value;
+	}
+	catch(std::exception&e)
+	{
+		throw NoSuchFieldException(class_name);
+	}
 }
 template<typename T,typename ...Args>
 struct Reflectable::Regist
