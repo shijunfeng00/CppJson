@@ -67,7 +67,7 @@ public:
 NoSuchClassException::NoSuchClassException(const std::string&type_name)
 {
 	std::ostringstream oss;
-	oss<<"Class '"<<type_name<<"' dose not exists or not reflectable.";
+	oss<<"Class '"<<type_name<<"' dose not exist or not reflectable.";
 	this->message=oss.str();
 }
 NoSuchClassException::~NoSuchClassException()
@@ -82,7 +82,7 @@ const char*NoSuchClassException::what()const throw()
 NoSuchFieldException::NoSuchFieldException(const std::string&type_name,const std::string&field_name)
 {
 	std::ostringstream oss;
-	oss<<"Object of type <"<<type_name<<"> dose not has field named '"<<field_name<<"' .";
+	oss<<"Object of type <"<<type_name<<"> dose not have field named '"<<field_name<<"' .";
 	this->message=oss.str();
 }
 NoSuchFieldException::~NoSuchFieldException()
@@ -97,7 +97,7 @@ const char*NoSuchFieldException::what()const throw()
 NoSuchMethodException::NoSuchMethodException(const std::string&type_name,const std::string&field_name)
 {
 	std::ostringstream oss;
-	oss<<"Object of type <"<<type_name<<"> dose not has method named '"<<field_name<<"' .";
+	oss<<"Object of type <"<<type_name<<"> dose not have method named '"<<field_name<<"' .";
 	this->message=oss.str();
 }
 NoSuchMethodException::~NoSuchMethodException()
@@ -146,7 +146,7 @@ JsonDecodeDelimiterException::JsonDecodeDelimiterException(const char&ch):
 		oss<<"Expecting '"<<ch<<"' delimiter in decoding json data.";
 		message+=oss.str();
 	}
-/********************************************************************************************/	
+/********************************************************************************************/
 JsonDecodeUnknowException::~JsonDecodeUnknowException()
 {
 	
